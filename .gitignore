@@ -4,3 +4,9 @@ dist/
 *.local
 .env
 .env.*
+
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

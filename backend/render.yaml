@@ -1,0 +1,19 @@
+# Render blueprint. One stateless Python web service — no database, by design.
+# See app/main.py for why there is nothing to persist.
+services:
+  - type: web
+    name: mylumi-api
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      # Comma-separated origins allowed to call the API, on top of localhost.
+      # Set this to the deployed frontend URL in the Render dashboard.
+      - key: FRONTEND_ORIGINS
+        sync: false
