@@ -4,7 +4,7 @@ import { deriveSleepDuration } from '../../lib/derive.js';
 import { MAX_SYMPTOM_BURDEN } from '../../lib/constants.js';
 
 /* Three honest states: fully logged, partially logged, and not logged. A
-   rescued night shows as rescued rather than as data — the streak never
+   rescued night shows as rescued rather than as data - the streak never
    pretends a night was recorded. */
 
 export function HistoryDayRow({ entry, rescued }) {

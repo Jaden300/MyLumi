@@ -3,6 +3,7 @@ import { useLumiData } from '../hooks/useLumiData.jsx';
 import { TodayCard } from '../components/dashboard/TodayCard.jsx';
 import { StreakCard } from '../components/dashboard/StreakCard.jsx';
 import { StreakRescuePrompt } from '../components/dashboard/StreakRescuePrompt.jsx';
+import { MilestoneCard } from '../components/dashboard/MilestoneCard.jsx';
 import { LastNightSummary } from '../components/dashboard/LastNightSummary.jsx';
 import { SymptomHeatStrip } from '../components/history/SymptomHeatStrip.jsx';
 import { InsightsSection } from '../components/insights/InsightsSection.jsx';
@@ -37,6 +38,11 @@ export function Dashboard() {
 
       <TodayCard status={status} />
 
+      {/* Above the streak card, below the day's action. It waits here until
+          acknowledged, so a milestone earned on a morning check-in is not lost
+          by closing the tab. */}
+      <MilestoneCard />
+
       {streak.canRescue && (
         <StreakRescuePrompt
           nightOf={streak.rescuableNightOf}
@@ -49,7 +55,10 @@ export function Dashboard() {
 
       {lastLogged && <LastNightSummary entry={lastLogged} />}
 
-      <InsightsSection />
+      {/* Compact: the number and its confidence, linking through for the
+          reasoning. Moving the forecast off the home screen entirely would lose
+          the app's most distinctive feature from first view. */}
+      <InsightsSection variant="compact" />
 
       {hasAnyEntry && (
         <Card title={`Last ${TREND_DAYS} days`}>

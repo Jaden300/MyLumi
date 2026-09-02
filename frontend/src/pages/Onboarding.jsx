@@ -20,7 +20,7 @@ export function Onboarding() {
       return;
     }
     if (daysBetween(injuryDate, today) < 0) {
-      setError("That date is in the future — please check it.");
+      setError("That date is in the future - please check it.");
       return;
     }
     updateProfile({ injuryDate });
@@ -31,11 +31,11 @@ export function Onboarding() {
     <div className="stack stack--loose">
       <div className="text-center stack">
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <Lumi size={96} state="encouraging" title="Lumi, your recovery guide" />
+          <Lumi size={96} state="waving" title="Lumi, your recovery guide" />
         </div>
         <h1>Hi, I'm Lumi</h1>
         <p className="text-muted">
-          I'll help you track how you're recovering — twice a day, about two minutes each time.
+          I'll help you track how you're recovering - twice a day, about two minutes each time.
         </p>
       </div>
 
@@ -85,7 +85,7 @@ export function Onboarding() {
           </li>
           <li>
             <strong style={{ color: 'var(--text)' }}>See a healthcare professional</strong> about your
-            symptoms — especially if they're getting worse.
+            symptoms - especially if they're getting worse.
           </li>
         </ul>
       </Card>

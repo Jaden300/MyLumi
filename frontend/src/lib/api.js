@@ -7,7 +7,7 @@
    Two rules it enforces:
 
    1. Nothing throws into render. Every failure returns the same envelope the
-      server uses for "not enough data" — `{ available: false, reason }` — so the
+      server uses for "not enough data" - `{ available: false, reason }` - so the
       UI has ONE "we can't tell you right now" path instead of a happy path plus
       an error path.
 
@@ -49,7 +49,15 @@ async function post(path, body, { timeout = COLD_START_TIMEOUT_MS } = {}) {
       signal: controller.signal,
     });
     if (!response.ok) return { ok: false, error: `http-${response.status}` };
-    return { ok: true, data: await response.json() };
+    /* Parsed in its own try so a malformed body is reported as 'malformed'
+       rather than 'network'. Both produce the same user-facing message, but a
+       proxy returning an HTML error page is a different problem from an
+       unreachable service, and conflating them hides it during a demo. */
+    try {
+      return { ok: true, data: await response.json() };
+    } catch {
+      return { ok: false, error: 'malformed' };
+    }
   } catch (error) {
     return { ok: false, error: error?.name === 'AbortError' ? 'timeout' : 'network' };
   } finally {
@@ -71,7 +79,7 @@ export function pingHealth() {
 }
 
 /**
- * Numeric insights. NO journal text — see toFeatureRow in derive.js.
+ * Numeric insights. NO journal text - see toFeatureRow in derive.js.
  *
  * Returns the three sections in server shape, with an offline envelope
  * substituted on failure so callers never branch on transport errors.
@@ -88,8 +96,15 @@ export async function fetchInsights(rows, daysSinceInjury = null) {
 }
 
 /**
- * Journal sentiment. Sends free text, so it is called ONLY after explicit
- * consent — see the consent gate in useInsights.
+ * Journal sentiment. Sends free text.
+ *
+ * The consent gate is NOT here. This function will send whatever it is handed -
+ * enforcement lives in `useJournalInsights`, which refuses to call it unless
+ * `useJournalConsent` reports an explicit opt-in, and in `buildJournalTexts`
+ * (lib/journal.js), which is the only thing that should ever build its payload.
+ *
+ * Stated plainly because the alternative is a comment claiming a guarantee this
+ * layer does not provide: any future caller must gate on consent itself.
  */
 export async function analyseJournal(texts) {
   const result = await post('/v1/nlp', { texts });

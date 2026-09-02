@@ -1,7 +1,7 @@
 /* Row pairing for the forecast.
 
    The rule under test: a row's prediction target is the burden of the night that
-   ACTUALLY followed it. If the user missed a night, there is no target — pairing
+   ACTUALLY followed it. If the user missed a night, there is no target - pairing
    across a gap would teach the model a two-day transition while labelling it a
    one-day one, which is a silent data-quality bug that would never surface as an
    error, only as a slightly wrong model. */

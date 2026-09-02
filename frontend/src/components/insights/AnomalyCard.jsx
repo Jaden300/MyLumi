@@ -2,7 +2,7 @@
 
    Tone is the whole design problem here. A statistical outlier in nine
    self-reported numbers is not a clinical event, and this card must not imply
-   one — no alarm colour, no "setback", no urgency. It notes something and lets
+   one - no alarm colour, no "setback", no urgency. It notes something and lets
    the user decide whether it means anything.
 
    Genuine red-flag escalation (worsening confusion, repeated vomiting) is a

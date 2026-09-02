@@ -1,6 +1,6 @@
 /* Visual analog mood scale, 0-100.
 
-   A continuous slider is correct here — VAS mood measures are collected this way
+   A continuous slider is correct here - VAS mood measures are collected this way
    precisely because mood doesn't quantise into 7 buckets. Until the user touches
    it there is no value, so the thumb starting at the midpoint would be a
    fabricated answer; the control renders unset until first interaction. */

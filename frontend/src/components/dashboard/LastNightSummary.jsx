@@ -1,4 +1,5 @@
 import { Card } from '../ui/Card.jsx';
+import { Stat } from '../ui/Stat.jsx';
 import {
   deriveSleepDuration,
   worstSymptom,
@@ -8,16 +9,6 @@ import { formatDuration, formatNightLabel } from '../../lib/dates.js';
 import { SYMPTOMS, MAX_SYMPTOM_BURDEN } from '../../lib/constants.js';
 
 const labelFor = (key) => SYMPTOMS.find((s) => s.key === key)?.label ?? key;
-
-function Stat({ label, value, note }) {
-  return (
-    <div className="stack stack--tight">
-      <span className="text-muted text-xs">{label}</span>
-      <strong style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>{value}</strong>
-      {note && <span className="text-muted text-xs">{note}</span>}
-    </div>
-  );
-}
 
 export function LastNightSummary({ entry }) {
   if (!entry?.night) return null;
@@ -31,12 +22,12 @@ export function LastNightSummary({ entry }) {
       <div className="row" style={{ gap: 'var(--space-6)', flexWrap: 'wrap' }}>
         <Stat
           label="Symptom burden"
-          value={Number.isFinite(burden) ? `${burden}` : '—'}
+          value={Number.isFinite(burden) ? `${burden}` : '-'}
           note={Number.isFinite(burden) ? `of ${MAX_SYMPTOM_BURDEN}` : 'incomplete'}
         />
         <Stat
           label="Sleep"
-          value={formatDuration(duration) ?? '—'}
+          value={formatDuration(duration) ?? '-'}
           note={duration == null ? 'awaiting morning check-in' : null}
         />
         {worst && <Stat label="Most severe" value={labelFor(worst.key)} note={`rated ${worst.value} of 6`} />}

@@ -1,7 +1,7 @@
 /* Maps a flow step's `component` name to the actual component.
 
    Flow configs reference steps by NAME rather than importing components
-   directly, which keeps the config a plain serializable object — so a saved
+   directly, which keeps the config a plain serializable object - so a saved
    draft can store `stepId` and survive steps being reordered or inserted. */
 
 import { SymptomStep } from './steps/SymptomStep.jsx';

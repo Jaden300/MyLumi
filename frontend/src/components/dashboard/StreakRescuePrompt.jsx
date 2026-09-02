@@ -6,7 +6,7 @@ import { formatShortDate } from '../../lib/dates.js';
 
 /* Offered only for last night, once a month. Recovery involves genuinely bad
    days; resetting someone's streak for one of them is both unkind and bad
-   retention design. The rescue records nothing as data — the night stays
+   retention design. The rescue records nothing as data - the night stays
    honestly empty in history. */
 
 export function StreakRescuePrompt({ nightOf, priorStreak, onRescue }) {
@@ -16,11 +16,11 @@ export function StreakRescuePrompt({ nightOf, priorStreak, onRescue }) {
     return (
       <Card>
         <div className="lumi-row">
-          <Lumi size={44} state="encouraging" />
+          <Lumi size={44} state="cheering" />
           <div className="stack stack--tight">
             <strong>Streak saved</strong>
             <span className="text-muted text-sm">
-              {formatShortDate(nightOf)} stays blank in your history — only your streak was kept.
+              {formatShortDate(nightOf)} stays blank in your history - only your streak was kept.
             </span>
           </div>
         </div>
@@ -35,7 +35,7 @@ export function StreakRescuePrompt({ nightOf, priorStreak, onRescue }) {
         <div className="stack stack--tight">
           <strong>You missed {formatShortDate(nightOf)}</strong>
           <span className="text-muted text-sm">
-            That would end your {priorStreak}-night run. You have one streak rescue this month — bad
+            That would end your {priorStreak}-night run. You have one streak rescue this month - bad
             days happen, and they shouldn't undo your progress.
           </span>
         </div>

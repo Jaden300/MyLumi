@@ -1,4 +1,4 @@
-/* Pure date logic. No React, no storage — unit-testable in isolation.
+/* Pure date logic. No React, no storage - unit-testable in isolation.
    Every date string in MyLumi is a LOCAL ISO date: "YYYY-MM-DD". */
 
 import { ROLLOVER_HOUR } from './constants.js';
@@ -12,7 +12,7 @@ const pad2 = (n) => String(n).padStart(2, '0');
  *
  * Never use `toISOString().slice(0, 10)` here. That returns the UTC date, so a
  * user west of UTC checking in at 6pm would be filed under tomorrow. This is the
- * single most common bug in an app like this — build the string from the local
+ * single most common bug in an app like this - build the string from the local
  * getters instead.
  */
 export function toLocalISODate(date) {
@@ -36,7 +36,7 @@ export function isValidISODate(value) {
  * Which sleep episode "now" belongs to.
  *
  * Before the rollover hour you are still in yesterday's night. A patient doing
- * their night check-in at 1:15am means "the night of yesterday" — a midnight
+ * their night check-in at 1:15am means "the night of yesterday" - a midnight
  * rollover would file it on the wrong day and break their streak for exactly the
  * insomnia this app exists to track.
  */
@@ -121,7 +121,7 @@ export function daysSinceInjury(injuryDate, now = new Date()) {
 
 /* --- wall-clock times ------------------------------------------------------
    Bedtime and wake time are self-reported wall-clock strings ("23:30"), not
-   instants. The user means "half eleven" — storing an instant would over-claim
+   instants. The user means "half eleven" - storing an instant would over-claim
    precision we don't have and render badly after export. */
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -160,7 +160,7 @@ export function formatDuration(minutes) {
  *
  * Sleep duration is computed from wall-clock times, which is wrong on exactly
  * two nights a year. Rather than pull in a timezone library for a hackathon, we
- * detect those nights and let the insights layer annotate or exclude them —
+ * detect those nights and let the insights layer annotate or exclude them -
  * two honestly-labelled anomalies beat a subtle year-round bug.
  */
 export function dstShiftMinutes(nightOf) {

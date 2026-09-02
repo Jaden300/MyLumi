@@ -8,9 +8,9 @@ export function NotFound() {
   return (
     <Card>
       <div className="lumi-row">
-        <Lumi size={56} state="concerned" />
+        <Lumi size={56} state="lost" />
         <div className="stack stack--tight">
-          <h1 style={{ fontSize: 'var(--fs-h3)' }}>Page not found</h1>
+          <h1 className="h-size-h3">Page not found</h1>
           <p className="text-muted text-sm">That link doesn't lead anywhere.</p>
         </div>
       </div>

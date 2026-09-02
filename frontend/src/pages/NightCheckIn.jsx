@@ -10,7 +10,7 @@ export function NightCheckIn() {
   const navigate = useNavigate();
   const flow = useMemo(() => createNightFlow(saveNight), [saveNight]);
 
-  // Target is always derived, never taken from the URL — a date parameter would
+  // Target is always derived, never taken from the URL - a date parameter would
   // be a backfill vector, and retrospective symptom recall is unreliable.
   const nightOf = status.nightOf;
 

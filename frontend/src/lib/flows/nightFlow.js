@@ -2,7 +2,7 @@
 
    Symptoms are split 3 per screen rather than shown as one list of nine. Nine
    sliders on one screen is a wall of input for someone with cognitive fatigue
-   and light sensitivity — the split is a clinical decision, not decoration. */
+   and light sensitivity - the split is a clinical decision, not decoration. */
 
 import { SYMPTOM_KEYS } from '../constants.js';
 
@@ -33,7 +33,7 @@ export function createNightFlow(saveNight) {
         validate: (values) => Number.isFinite(values.mood),
       },
       {
-        // Journal is always optional — requiring writing on a bad day is exactly
+        // Journal is always optional - requiring writing on a bad day is exactly
         // when a user abandons the app.
         id: 'journal',
         label: 'Journal',

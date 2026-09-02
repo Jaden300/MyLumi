@@ -25,7 +25,7 @@ const defaultStreak = (overrides = {}) => ({
   ...overrides,
 });
 
-// Evening of Jan 10 — so evaluation ends at Jan 9.
+// Evening of Jan 10 - so evaluation ends at Jan 9.
 const NOW = new Date(2026, 0, 10, 21, 0);
 
 describe('computeStreak', () => {
@@ -33,14 +33,14 @@ describe('computeStreak', () => {
     expect(computeStreak(complete('2026-01-07', '2026-01-08', '2026-01-09'), NOW)).toBe(3);
   });
 
-  it('does NOT count tonight — it cannot be complete yet', () => {
+  it('does NOT count tonight - it cannot be complete yet', () => {
     // Jan 10 is in progress. Counting it would show every user a broken streak
     // all evening; the current night is a grace period, not a failure.
     const entries = { ...complete('2026-01-08', '2026-01-09'), ...nightOnly('2026-01-10') };
     expect(computeStreak(entries, NOW)).toBe(2);
   });
 
-  it('requires both halves — a night-only entry breaks the run', () => {
+  it('requires both halves - a night-only entry breaks the run', () => {
     const entries = { ...complete('2026-01-07', '2026-01-08'), ...nightOnly('2026-01-09') };
     expect(computeStreak(entries, NOW)).toBe(0);
   });
@@ -167,7 +167,7 @@ describe('recomputeStreakState', () => {
     expect(state.longest).toBe(3);
   });
 
-  it('overrides a stale cached value — computed always wins', () => {
+  it('overrides a stale cached value - computed always wins', () => {
     const state = recomputeStreakState(defaultStreak({ current: 99 }), {}, NOW);
     expect(state.current).toBe(0);
   });

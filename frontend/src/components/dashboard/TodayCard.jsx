@@ -4,7 +4,7 @@ import { Button } from '../ui/Button.jsx';
 import { Lumi } from '../lumi/Lumi.jsx';
 
 /* One primary action, never two. If both check-ins are outstanding the
-   secondary one is offered as a quiet link — asking a fatigued user to choose
+   secondary one is offered as a quiet link - asking a fatigued user to choose
    between two equally-weighted buttons is a decision they shouldn't have to
    make. */
 
@@ -37,7 +37,7 @@ export function TodayCard({ status }) {
 
   const secondary =
     status.primary === 'morning' && status.nightDue
-      ? { label: 'Or do tonight’s check-in', to: '/checkin/night' }
+      ? { label: "Or do tonight's check-in", to: '/checkin/night' }
       : status.primary === 'night' && status.morningDue
         ? { label: 'Or log how you slept last night', to: '/checkin/morning' }
         : null;
@@ -47,7 +47,7 @@ export function TodayCard({ status }) {
       <div className="lumi-row" style={{ marginBottom: 'var(--space-5)' }}>
         <Lumi size={64} state={copy.lumi} />
         <div className="stack stack--tight">
-          <h2 style={{ fontSize: 'var(--fs-h3)' }}>{copy.title}</h2>
+          <h2 className="h-size-h3">{copy.title}</h2>
           <p className="text-muted text-sm">{copy.body}</p>
         </div>
       </div>

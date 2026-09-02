@@ -42,7 +42,7 @@ export function EntryDetail() {
   return (
     <div className="stack stack--loose">
       <header className="stack stack--tight">
-        <h1 style={{ fontSize: 'var(--fs-h2)' }}>{formatNightLabel(entry.nightOf)}</h1>
+        <h1 className="h-size-h2">{formatNightLabel(entry.nightOf)}</h1>
         {Number.isFinite(night?.symptomBurden) && (
           <p className="text-muted text-sm">
             Symptom burden {night.symptomBurden} of {MAX_SYMPTOM_BURDEN}

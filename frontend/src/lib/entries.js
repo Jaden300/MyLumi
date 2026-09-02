@@ -1,4 +1,4 @@
-/* Domain API. Components call this — never storage.js directly.
+/* Domain API. Components call this - never storage.js directly.
 
    Reads go through loadData(), which heals and migrates. Writes recompute
    derived fields and streak state, then persist once. */
@@ -90,7 +90,7 @@ export function getTodayEntry(data, now = new Date()) {
 }
 
 /**
- * Dense list across a date range — gaps come back as empty entries.
+ * Dense list across a date range - gaps come back as empty entries.
  *
  * History and charts must iterate a RANGE, never Object.keys(entries): a sparse
  * map silently collapses missed days, and missingness is data (for the streak,
@@ -100,7 +100,7 @@ export function getEntryRange(data, startIso, endIso) {
   return eachDate(startIso, endIso).map((iso) => data.entries[iso] ?? createEmptyEntry(iso));
 }
 
-/** Sparse, ascending — for feature building, where gaps should be absent. */
+/** Sparse, ascending - for feature building, where gaps should be absent. */
 export function getAllEntries(data) {
   return Object.keys(data.entries)
     .sort()
@@ -180,7 +180,7 @@ export function saveMorningCheckIn(data, nightOf, values, { now = new Date(), ov
 /**
  * What the dashboard should ask for right now.
  *
- * The morning check-in always targets the PREVIOUS night's episode — that is the
+ * The morning check-in always targets the PREVIOUS night's episode - that is the
  * sleep the user just finished. Keying entries by sleep episode is what makes
  * this a one-line lookup instead of an adjacent-day join.
  */
@@ -245,7 +245,7 @@ export function savePrefs(prefs) {
 
 /* --- data rights ------------------------------------------------------------ */
 
-/** The stored shape IS the export shape — no transformation layer to drift. */
+/** The stored shape IS the export shape - no transformation layer to drift. */
 export function exportJSON(data, now = new Date()) {
   return JSON.stringify({ ...data, exportedAt: now.toISOString(), appSchemaVersion: SCHEMA_VERSION }, null, 2);
 }

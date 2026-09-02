@@ -1,7 +1,7 @@
 /* The ONLY module that touches localStorage.
 
    Every function here is total: it returns a fallback or a result object and
-   never throws. Storage failure must degrade the app, not white-screen it — a
+   never throws. Storage failure must degrade the app, not white-screen it - a
    judge on a locked-down machine or in private browsing still has to see a
    working demo. */
 
@@ -148,7 +148,7 @@ function namespacedKeys() {
 /**
  * Remove every MyLumi key.
  * The shared `mylumi.` prefix is what makes "delete all my data" a few lines
- * that provably miss nothing — including quarantined and draft keys.
+ * that provably miss nothing - including quarantined and draft keys.
  */
 export function clearNamespace() {
   const keys = namespacedKeys();
@@ -175,7 +175,7 @@ export function quarantine(key, now = new Date()) {
   }
 }
 
-/** All namespaced keys and their raw values — for debugging and export. */
+/** All namespaced keys and their raw values - for debugging and export. */
 export function getRawSnapshot() {
   const out = {};
   for (const key of namespacedKeys()) out[key] = readRaw(key);

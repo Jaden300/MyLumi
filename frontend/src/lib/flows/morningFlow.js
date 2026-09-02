@@ -1,6 +1,6 @@
 /* Morning check-in: 3 steps, ~2 minutes.
 
-   Shorter than the night flow by design — it runs when the user has just woken
+   Shorter than the night flow by design - it runs when the user has just woken
    up, which is the worst moment to ask for sustained attention. */
 
 export function createMorningFlow(saveMorning) {

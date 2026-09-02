@@ -1,4 +1,4 @@
-/* Streak + streak-rescue rules. Pure functions — no storage, no React.
+/* Streak + streak-rescue rules. Pure functions - no storage, no React.
 
    A streak is DERIVED on read by walking backwards from last night, never
    incremented by a timer or a background job. The stored values are a cache; if
@@ -51,7 +51,7 @@ export function lastCompletedNightOf(entries, now = new Date(), rescue = null, r
 /**
  * Refresh the monthly rescue allowance if we've rolled into a new month.
  *
- * Granted lazily on read rather than by a scheduled job — the allowance simply
+ * Granted lazily on read rather than by a scheduled job - the allowance simply
  * refreshes the first time the user opens the app in a new month. Unused
  * rescues do NOT roll over.
  */
@@ -67,7 +67,7 @@ const MIN_STREAK_TO_RESCUE = 2;
 /**
  * Whether to offer a rescue right now, and for which night.
  *
- * Only ever LAST NIGHT — never an arbitrary past gap. Allowing retroactive
+ * Only ever LAST NIGHT - never an arbitrary past gap. Allowing retroactive
  * rescue of any historical miss would make the streak meaningless. This is an
  * "I had a rough night, don't reset me" button, offered in the moment.
  */
@@ -80,7 +80,7 @@ export function getRescueOffer(entries, streakState, now = new Date(), rolloverH
     return { canRescue: false, reason: 'not-needed', rescue, nightOf: null };
   }
 
-  // The run that last night interrupted — i.e. what is actually at stake.
+  // The run that last night interrupted - i.e. what is actually at stake.
   const priorStreak = streakEndingBefore(entries, target, rescue);
 
   if (priorStreak < MIN_STREAK_TO_RESCUE) {
@@ -104,7 +104,7 @@ function streakEndingBefore(entries, nightOf, rescue) {
  * Spend the monthly rescue on `nightOf`.
  *
  * Writes NO entry data. The night stays honestly empty and history labels it as
- * rescued — the streak is a motivation feature and must never put invented
+ * rescued - the streak is a motivation feature and must never put invented
  * scores into the clinical record.
  *
  * Scoped to the CURRENT month rather than the rescued night's month: rescuing

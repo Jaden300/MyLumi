@@ -1,4 +1,4 @@
-/* Decides which insight state the dashboard is in.
+/* Decides which insight state the user is in.
 
    Four possible states, and exactly one renders:
      1. not configured      -> nothing (a build with no API URL stays quiet)
@@ -8,7 +8,14 @@
 
    The important collapse is 3: "not enough data" and "can't reach the service"
    arrive in the same envelope from the same code path, so there is one place
-   that says "MyLumi can't tell you something right now" instead of two. */
+   that says "MyLumi can't tell you something right now" instead of two.
+
+   Two variants share this one state machine rather than being forked into two
+   components - duplicating the logic is how the offline path quietly stops
+   matching between the dashboard and the insights page:
+
+     compact -> the dashboard. Prediction only, no drivers, linking through.
+     full    -> /insights. Prediction with drivers, correlation, anomaly. */
 
 import { useInsights } from '../../hooks/useInsights.js';
 import { BaselineProgress } from './BaselineProgress.jsx';
@@ -16,19 +23,25 @@ import { PredictionCard } from './PredictionCard.jsx';
 import { CorrelationCard } from './CorrelationCard.jsx';
 import { AnomalyCard } from './AnomalyCard.jsx';
 import { Card } from '../ui/Card.jsx';
+import { Button } from '../ui/Button.jsx';
+import { Lumi } from '../lumi/Lumi.jsx';
 
-export function InsightsSection() {
-  const { loading, insights, configured } = useInsights();
+export function InsightsSection({ variant = 'full' }) {
+  const { loading, insights, configured, reload } = useInsights();
+  const compact = variant === 'compact';
 
   if (!configured) return null;
 
   if (loading && !insights) {
     return (
       <Card title="Looking at your patterns">
-        <p className="text-muted text-sm" role="status">
-          Waking up MyLumi's model service. This can take up to a minute if it
-          hasn't been used in a while.
-        </p>
+        <div className="lumi-row">
+          <Lumi size={48} state="thinking" />
+          <p className="text-muted text-sm" role="status">
+            Waking up MyLumi's model service. This can take up to a minute if it
+            hasn't been used in a while.
+          </p>
+        </div>
       </Card>
     );
   }
@@ -38,12 +51,30 @@ export function InsightsSection() {
   const { forecast, correlation, anomaly, offline } = insights;
 
   if (offline) {
+    /* The dashboard already has plenty to say when the service is down, and a
+       second "unavailable" notice there adds noise without adding information.
+       The insights page is where a user went specifically for this, so that is
+       where the explanation belongs. */
+    if (compact) return null;
     return (
       <Card title="Insights unavailable">
-        <p className="text-sm">{forecast.reason}</p>
-        <p className="text-muted text-xs" style={{ marginTop: 'var(--space-3)' }}>
-          Your check-ins are stored on this device and are unaffected.
-        </p>
+        <div className="stack">
+          <div className="lumi-row">
+            <Lumi size={44} state="offline" />
+            <p className="text-sm">{forecast.reason}</p>
+          </div>
+          <p className="text-muted text-xs">
+            Your check-ins are stored on this device and are unaffected.
+          </p>
+          {/* The service is usually just asleep, and the first request is what
+              wakes it - so the second one often succeeds. Without this the only
+              way to retry was a full page reload. */}
+          <div>
+            <Button variant="secondary" onClick={reload} disabled={loading}>
+              {loading ? 'Trying again…' : 'Try again'}
+            </Button>
+          </div>
+        </div>
       </Card>
     );
   }
@@ -51,8 +82,11 @@ export function InsightsSection() {
   // Nothing to say yet. Show the one honest state rather than three empty cards.
   const anyAvailable = forecast.available || correlation.available || anomaly.available;
   if (!anyAvailable) {
+    if (compact) return null;
     return <BaselineProgress nDays={forecast.nDays} reason={forecast.reason} />;
   }
+
+  if (compact) return <PredictionCard forecast={forecast} compact />;
 
   return (
     <>

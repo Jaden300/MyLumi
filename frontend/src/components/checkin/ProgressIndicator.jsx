@@ -1,5 +1,5 @@
 /* Segment-grouped progress. Three symptom screens read as one "Symptoms"
-   segment that fills gradually, rather than six equal dots — "step 3 of 6" when
+   segment that fills gradually, rather than six equal dots - "step 3 of 6" when
    you've barely started is discouraging for an already-fatigued user. */
 
 export function ProgressIndicator({ segments, stepIndex, stepCount }) {

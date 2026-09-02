@@ -1,7 +1,7 @@
 /* Fetches insights for the current dataset.
 
-   Builds feature rows through `toFeatureRow` — the documented chokepoint for
-   what leaves the device — and calls the batched endpoint once. */
+   Builds feature rows through `toFeatureRow` - the documented chokepoint for
+   what leaves the device - and calls the batched endpoint once. */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchInsights, isConfigured } from '../lib/api.js';
@@ -58,7 +58,7 @@ export function useInsights() {
     load();
     // `load` is intentionally excluded: it changes identity on every render
     // because `entries` is a fresh array each time. `signature` is the real
-    // dependency — it changes exactly when the answer could change.
+    // dependency - it changes exactly when the answer could change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature]);
 

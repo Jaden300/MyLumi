@@ -1,4 +1,4 @@
-/* Wraps <input type="time">, which returns "HH:mm" natively — exactly the
+/* Wraps <input type="time">, which returns "HH:mm" natively - exactly the
    format we store, so there's no parsing step to get wrong.
 
    Some browsers hand back "" for a partially-entered time, so the value is

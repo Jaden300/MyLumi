@@ -22,7 +22,7 @@ export function About() {
           </p>
           <p>
             Sleep is one of the few things you can actually change during recovery, and the mental
-            side of a concussion — irritability, low mood, brain fog — often goes untracked. MyLumi
+            side of a concussion - irritability, low mood, brain fog - often goes untracked. MyLumi
             sits at that intersection.
           </p>
         </div>
@@ -50,7 +50,7 @@ export function About() {
             mood, memory, and what you're comparing against.
           </li>
           <li>
-            Any pattern MyLumi finds is <strong>from your data alone</strong> — it is not a
+            Any pattern MyLumi finds is <strong>from your data alone</strong> - it is not a
             population study, and it can't tell you what's typical for other people.
           </li>
           <li>
@@ -62,21 +62,37 @@ export function About() {
             and it will tell you when it doesn't have enough data rather than guessing.
           </li>
           <li>
-            It can't see anything you don't log — medication, other injuries, or what's happening in
+            It can't see anything you don't log - medication, other injuries, or what's happening in
             the rest of your life.
           </li>
         </ul>
       </Card>
 
-      <Card title="When to seek medical help">
+      {/* The anchor the red-flag banner links to. Someone arriving here from an
+          alert is scanning, not reading, so the list is scannable - and it is
+          always here regardless of whether any rule has fired. A rule that never
+          fires must never read as an all-clear. */}
+      <Card title="When to seek medical help" id="red-flags">
         <div className="stack stack--tight text-sm text-muted">
           <p>
-            Talk to a healthcare professional about your recovery, and seek help promptly if you have
-            a headache that keeps worsening, repeated vomiting, seizures, weakness or numbness,
-            slurred speech, unusual confusion or drowsiness, or if you can't be woken normally.
+            Talk to a healthcare professional about your recovery. Seek help promptly if you have any
+            of these:
           </p>
+          <ul className="stack stack--tight" style={{ paddingLeft: '1.1rem' }}>
+            <li>A headache that keeps getting worse, or one that won't go away</li>
+            <li>Repeated vomiting</li>
+            <li>Seizures or convulsions</li>
+            <li>Weakness, numbness, or loss of coordination</li>
+            <li>Slurred speech, or trouble understanding people</li>
+            <li>Unusual confusion, agitation, or drowsiness</li>
+            <li>One pupil larger than the other</li>
+            <li>Someone who can't be woken normally</li>
+          </ul>
           <p style={{ color: 'var(--text)' }}>
-            Don't wait for MyLumi to tell you something is wrong. It cannot detect an emergency.
+            Don't wait for MyLumi to tell you something is wrong.{' '}
+            <strong>It cannot detect an emergency.</strong> MyLumi only sees the numbers you type in
+            twice a day - it can't see any of the signs above, and it never will. If something feels
+            wrong, that's reason enough to get help.
           </p>
         </div>
       </Card>

@@ -1,4 +1,4 @@
-/* Shared component styles. Tokens only — no literal colours. */
+/* Shared component styles. Tokens only - no literal colours. */
 
 /* --- layout ---------------------------------------------------------------- */
 
@@ -314,7 +314,8 @@
 
 .segmented__option:hover { color: var(--text); border-color: var(--accent); }
 
-.segmented__option[aria-pressed='true'] {
+/* aria-checked, not aria-pressed: these are radios in a radiogroup, not toggles. */
+.segmented__option[aria-checked='true'] {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
@@ -399,7 +400,8 @@
 
 .scale__option:hover { color: var(--text); border-color: var(--accent); }
 
-.scale__option[aria-pressed='true'] {
+/* aria-checked, not aria-pressed: see .segmented__option above. */
+.scale__option[aria-checked='true'] {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
@@ -626,6 +628,182 @@
   opacity: 0.5;
 }
 
+/* Linked cells are as thin as 3px wide and as short as 8% of 40px, far under the
+   44px floor. The bar stays the data mark; an invisible ::after extends the hit
+   area to the full height of the strip and a bit beyond, so the tap target is
+   real without changing what is drawn. */
+.heat-strip__cell--link {
+  position: relative;
+  display: block;
+}
+
+.heat-strip__cell--link::after {
+  content: '';
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  bottom: -4px;
+  /* Tall enough to cover the 40px strip regardless of this bar's own height. */
+  top: -44px;
+}
+
+.heat-strip__cell--link:hover {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* The strip clips nothing, so the focus ring on a short bar stays visible. */
+.heat-strip { overflow: visible; }
+
+/* --- trajectory chart --------------------------------------------------------
+   Hand-rolled SVG. Every colour is a token so the chart tracks the theme without
+   a second palette to keep in sync. No transitions: this is a static chart, and
+   an animated one would be actively unpleasant for a user with light
+   sensitivity. */
+
+/* The viewBox keeps its aspect ratio so the point circles stay circles rather
+   than stretching into ellipses on a wide card. */
+.trajectory {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.trajectory__grid {
+  stroke: var(--border);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.trajectory__axis {
+  fill: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 8px;
+}
+
+.trajectory__mean {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Day 0. Dashed so it reads as a reference mark rather than as data. */
+.trajectory__injury {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.trajectory__point {
+  stroke: var(--surface);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Severe nights get a ring as well as a warmer fill - never colour alone. */
+.trajectory__point--high {
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
+/* A programmatic focus target, not an interactive control - the ring would be
+   noise around a whole question. Same treatment as .app-main. */
+.checkin__step:focus {
+  outline: none;
+}
+
+/* --- heading size overrides ----------------------------------------------------
+   Heading LEVEL is a document-structure decision; heading SIZE is a visual one.
+   These let a page keep its correct <h1> while being sized down - e.g. a card
+   whose title should not shout. Previously done with inline styles, which put a
+   design token in seven JSX files and made the pattern invisible to this
+   stylesheet. Never use these to fake a level: change the size, not the tag. */
+
+.h-size-h2 { font-size: var(--fs-h2); }
+.h-size-h3 { font-size: var(--fs-h3); }
+
+/* --- milestone -----------------------------------------------------------------
+   The one place the brand gradient appears outside Lumi, per the design system's
+   "hero / celebration moments only, used sparingly".
+
+   One gentle entrance and then stillness. No confetti, no loop, no flash: the
+   users have photophobia and cognitive fatigue, and a celebration that hurts to
+   look at is not a celebration. The global prefers-reduced-motion rule in
+   base.css removes the animation entirely, and the card reads correctly without it. */
+
+.milestone {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--brand-gradient) border-box;
+  animation: milestone-in var(--dur-slow) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.milestone__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  letter-spacing: -0.01em;
+}
+
+@keyframes milestone-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* --- sentiment sparkline -------------------------------------------------------
+   Deliberately smaller and plainer than .trajectory: no gridlines, no axis text,
+   about half the height. Journal tone is a secondary signal (docs/responsible-ai.md)
+   and must not look as authoritative as the PCSS burden chart. */
+
+.sentiment-spark {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* The neutral line. Dashed so it reads as a reference mark, not as data -
+   same convention as .trajectory__injury. */
+.sentiment-spark__zero {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.sentiment-spark__line {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Sign is carried by position relative to the zero line as well as by colour,
+   so the chart survives being read at minimum brightness. */
+.sentiment-spark__point {
+  fill: var(--positive);
+  stroke: var(--surface);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.sentiment-spark__point--negative {
+  fill: var(--caution);
+}
+
 /* --- badges ------------------------------------------------------------------ */
 
 .badge {
@@ -705,7 +883,7 @@
 }
 
 /* Direction is carried by the word ("pushes this up") as well as the arrow and
-   colour — never rely on colour alone. */
+   colour - never rely on colour alone. */
 .driver__arrow {
   font-weight: 700;
   line-height: 1.4;

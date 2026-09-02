@@ -19,7 +19,7 @@ import {
 describe('toLocalISODate', () => {
   it('uses local calendar parts, not UTC', () => {
     // 6pm local. Under toISOString() any timezone west of UTC would roll this
-    // to the following day — the bug this function exists to prevent.
+    // to the following day - the bug this function exists to prevent.
     const evening = new Date(2026, 0, 5, 18, 30);
     expect(toLocalISODate(evening)).toBe('2026-01-05');
   });
@@ -57,7 +57,7 @@ describe('currentNightOf', () => {
     expect(currentNightOf(new Date(2026, 0, 5, 22, 30))).toBe('2026-01-05');
   });
 
-  it('returns YESTERDAY at 2am — the insomnia case', () => {
+  it('returns YESTERDAY at 2am - the insomnia case', () => {
     // A patient checking in at 2am on Jan 6 means the night of Jan 5. A midnight
     // rollover would file this on Jan 6 and break their streak.
     expect(currentNightOf(new Date(2026, 0, 6, 2, 0))).toBe('2026-01-05');
@@ -101,7 +101,7 @@ describe('daysBetween', () => {
   });
 
   it('counts across a DST transition without rounding error', () => {
-    // US spring forward 2026-03-08 — a 23-hour local day.
+    // US spring forward 2026-03-08 - a 23-hour local day.
     expect(daysBetween('2026-03-07', '2026-03-09')).toBe(2);
   });
 

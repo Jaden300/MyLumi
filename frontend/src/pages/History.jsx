@@ -12,7 +12,7 @@ export function History() {
   const end = currentNightOf(new Date(), data.profile.dayRolloverHour);
   const start = data.profile.injuryDate ?? end;
 
-  /* A DENSE range, not Object.keys(entries) — a sparse map would silently close
+  /* A DENSE range, not Object.keys(entries) - a sparse map would silently close
      the gaps, and a missed night is information worth seeing. */
   const entries = getEntryRange(start, end);
   const newestFirst = [...entries].reverse();

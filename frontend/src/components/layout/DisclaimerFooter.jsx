@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 
 /* Persistent, on every screen. MyLumi must never present itself as a diagnostic
-   tool — see MyLumi_Plan.md §4. */
+   tool - see MyLumi_Plan.md §4. */
 
 export function DisclaimerFooter() {
   return (

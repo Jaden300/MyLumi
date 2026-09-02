@@ -1,4 +1,4 @@
-/* Derived features. Pure functions of an entry — no storage, no React.
+/* Derived features. Pure functions of an entry - no storage, no React.
 
    This file is also the ML feature contract: when Phase 3 sends data to Render
    for inference, `toFeatureRow` is the single chokepoint describing exactly what
@@ -10,7 +10,7 @@ import { timeToMinutes, dstShiftMinutes, daysBetween } from './dates.js';
 
 /**
  * Sum of the 9 PCSS items (0-54).
- * Returns null if ANY item is missing — a partial sum would understate burden
+ * Returns null if ANY item is missing - a partial sum would understate burden
  * and read as a real, lower score.
  */
 export function computeSymptomBurden(symptoms) {

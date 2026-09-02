@@ -1,9 +1,10 @@
-/* The single source of app state. Components read and mutate through this —
+/* The single source of app state. Components read and mutate through this -
    they never import storage.js or entries.js directly. */
 
 import { createContext, useContext, useCallback, useEffect, useMemo, useState } from 'react';
 import * as api from '../lib/entries.js';
 import { isStorageAvailable, KEYS } from '../lib/storage.js';
+import { buildDemoData } from '../lib/demoSeed.js';
 
 const LumiDataContext = createContext(null);
 
@@ -73,6 +74,14 @@ export function LumiDataProvider({ children }) {
     setData(api.deleteAllData());
   }, []);
 
+  /* Demo data replaces the whole record rather than merging into it. Merging
+     would interleave fabricated entries with real ones and leave no way to tell
+     them apart afterwards - `meta.isDemoData` is a property of the whole blob,
+     not of individual entries, so a mixed record could not honestly carry it. */
+  const loadDemo = useCallback(() => {
+    setData(buildDemoData(new Date()));
+  }, []);
+
   const value = useMemo(
     () => ({
       data,
@@ -84,6 +93,7 @@ export function LumiDataProvider({ children }) {
       storageAvailable,
       storageError,
       recovery,
+      isDemoData: data.meta?.isDemoData === true,
       getEntry: (nightOf) => api.getEntry(data, nightOf),
       getEntryRange: (start, end) => api.getEntryRange(data, start, end),
       getAllEntries: () => api.getAllEntries(data),
@@ -93,6 +103,7 @@ export function LumiDataProvider({ children }) {
       redeemRescue,
       updateProfile,
       deleteAll,
+      loadDemo,
     }),
     [
       data,
@@ -105,6 +116,7 @@ export function LumiDataProvider({ children }) {
       redeemRescue,
       updateProfile,
       deleteAll,
+      loadDemo,
     ],
   );
 

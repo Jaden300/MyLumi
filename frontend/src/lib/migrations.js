@@ -2,7 +2,7 @@
 
    Each key N is a function upgrading a v(N) record to v(N+1). Adding a field is
    usually free (normalizeData fills defaults); a migration is needed when the
-   MEANING of stored data changes — e.g. if symptomBurden's definition ever
+   MEANING of stored data changes - e.g. if symptomBurden's definition ever
    changes, its migration recomputes every stored value. */
 
 import { SCHEMA_VERSION } from './schema.js';

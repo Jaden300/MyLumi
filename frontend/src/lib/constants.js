@@ -1,11 +1,11 @@
 /* Clinical vocabulary and scales. See docs/data-schema.md */
 
-export const ROLLOVER_HOUR = 4; // local hour a new "night" begins — see docs/data-schema.md
+export const ROLLOVER_HOUR = 4; // local hour a new "night" begins - see docs/data-schema.md
 
 /* The 9 PCSS (Post-Concussion Symptom Scale) items we track, in check-in order.
    `clinical` is the medical term, `label` is what the user sees, `hint` explains
    the clinical term in plain language. Terminology is used accurately and always
-   paired with an explanation — see docs/design-system.md. */
+   paired with an explanation - see docs/design-system.md. */
 export const SYMPTOMS = [
   { key: 'headache', label: 'Headache', clinical: 'Cephalalgia', hint: 'Head pain of any kind.' },
   {
@@ -67,7 +67,7 @@ export const MORNING_MOOD_ANCHORS = { min: 'Very low', max: 'Very good' };
 export const ENERGY_ANCHORS = { min: 'Drained', max: 'Energised' };
 export const READINESS_ANCHORS = { min: 'Not ready', max: 'Fully ready' };
 
-/* Visual analog mood scale (night check-in) is 0-100 — finer grained than the
+/* Visual analog mood scale (night check-in) is 0-100 - finer grained than the
    0-6 items on purpose, matching how VAS mood measures are normally collected. */
 export const MOOD_VAS_MIN = 0;
 export const MOOD_VAS_MAX = 100;
@@ -78,7 +78,7 @@ export const STRESS_MAX = 5;
 export const STRESS_ANCHORS = { min: 'Very calm', max: 'Very stressed' };
 
 /* Nighttime awakenings is an ordinal bucket, NOT a number. "3+" must stay a
-   string in storage — collapsing it to 3 would silently discard "or more". */
+   string in storage - collapsing it to 3 would silently discard "or more". */
 export const AWAKENING_OPTIONS = ['0', '1', '2', '3+'];
 
 /* Free-text fields are capped to keep a runaway paste from filling storage. */

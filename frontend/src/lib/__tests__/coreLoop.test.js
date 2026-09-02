@@ -124,7 +124,7 @@ describe('streak rescue', () => {
   it('preserves the streak without inventing data', () => {
     let data = setProfile(loadData(EVENING), { injuryDate: '2026-01-01' }, EVENING);
 
-    // Complete Jan 7, 8, 9 — then miss Jan 10.
+    // Complete Jan 7, 8, 9 - then miss Jan 10.
     for (const nightOf of ['2026-01-07', '2026-01-08', '2026-01-09']) {
       data = saveNightCheckIn(data, nightOf, nightValues(), { now: EVENING }).data;
       data = saveMorningCheckIn(data, nightOf, morningValues(), { now: EVENING }).data;

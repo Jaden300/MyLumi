@@ -1,4 +1,4 @@
-/* Personal sleep-symptom patterns — the headline feature.
+/* Personal sleep-symptom patterns - the headline feature.
 
    Two things this card must never do:
    - imply causation. The statements come from the server already phrased as

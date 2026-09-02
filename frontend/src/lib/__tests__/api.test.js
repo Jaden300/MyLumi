@@ -49,7 +49,7 @@ describe('fetchInsights', () => {
 
     const { fetchInsights } = await loadApi();
     // Even if a caller mistakenly hands over a row carrying text, the payload is
-    // whatever it was given — so this asserts the CALLER contract holds by
+    // whatever it was given - so this asserts the CALLER contract holds by
     // checking the serialised body for the field names journal text uses.
     await fetchInsights([{ nightOf: '2026-01-01', symptomBurden: 20 }], null);
 
@@ -114,6 +114,50 @@ describe('analyseJournal', () => {
     const result = await analyseJournal([]);
     expect(result.available).toBe(false);
     expect(result.points).toEqual([]);
+  });
+
+  it('makes no call at all when unconfigured', async () => {
+    // The equivalent guard for fetchInsights was covered; this path was not.
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { analyseJournal } = await loadApi('');
+    const result = await analyseJournal([{ nightOf: '2026-01-01', day: 'private' }]);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.available).toBe(false);
+  });
+
+  it('sends no numeric or clinical fields through the text endpoint', async () => {
+    // The inverse of the numeric endpoint's no-journal-text assertion, run
+    // through the real payload builder rather than a hand-written object.
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ available: true, points: [] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { analyseJournal } = await loadApi();
+    const { buildJournalTexts } = await import('../journal.js');
+
+    const texts = buildJournalTexts([
+      {
+        nightOf: '2026-01-01',
+        night: {
+          symptoms: { headache: 6 },
+          symptomBurden: 42,
+          journal: { day: 'a rough day', factors: '' },
+        },
+        morning: { sleepQuality: 3, journal: { wakeFeeling: 'groggy' } },
+      },
+    ]);
+    await analyseJournal(texts);
+
+    const body = fetchMock.mock.calls[0][1].body;
+    expect(body).toContain('a rough day');
+    expect(body).not.toContain('symptomBurden');
+    expect(body).not.toContain('headache');
+    expect(body).not.toContain('sleepQuality');
   });
 });
 

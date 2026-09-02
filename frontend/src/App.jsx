@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard.jsx';
 import { Onboarding } from './pages/Onboarding.jsx';
 import { NightCheckIn } from './pages/NightCheckIn.jsx';
 import { MorningCheckIn } from './pages/MorningCheckIn.jsx';
+import { Insights } from './pages/Insights.jsx';
 import { History } from './pages/History.jsx';
 import { EntryDetail } from './pages/EntryDetail.jsx';
 import { YourData } from './pages/YourData.jsx';
@@ -21,10 +22,11 @@ export default function App() {
             <Route element={<AppShell />}>
               <Route index element={<Dashboard />} />
               <Route path="onboarding" element={<Onboarding />} />
-              {/* Check-in routes take no date parameter — the target night is
+              {/* Check-in routes take no date parameter - the target night is
                   always derived, so there is no way to backfill a past night. */}
               <Route path="checkin/night" element={<NightCheckIn />} />
               <Route path="checkin/morning" element={<MorningCheckIn />} />
+              <Route path="insights" element={<Insights />} />
               <Route path="history" element={<History />} />
               <Route path="history/:nightOf" element={<EntryDetail />} />
               <Route path="data" element={<YourData />} />

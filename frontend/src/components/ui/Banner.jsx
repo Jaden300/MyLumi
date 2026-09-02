@@ -1,4 +1,4 @@
-/* Inline notice. Never a modal — this app should not hand a fatigued user a
+/* Inline notice. Never a modal - this app should not hand a fatigued user a
    dialog to dismiss before they can continue. */
 
 export function Banner({ tone = 'info', title, children, action, role = 'status' }) {

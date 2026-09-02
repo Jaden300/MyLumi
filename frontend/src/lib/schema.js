@@ -1,6 +1,6 @@
 /* Shape of the stored record + validation. See docs/data-schema.md.
 
-   Entries are keyed by `nightOf` — the local date the night BEGAN. One record is
+   Entries are keyed by `nightOf` - the local date the night BEGAN. One record is
    one sleep episode: the `night` block describes that day and the intention to
    sleep, the `morning` block describes waking the next day. Keying this way makes
    sleep duration a pure function of a single record and makes each entry exactly
@@ -110,7 +110,7 @@ function normalizeEntries(rawEntries) {
 
 /* --- check-in payload validation ------------------------------------------
    Guards the boundary between UI state and stored data. Out-of-range or missing
-   values become null rather than being coerced to a number — a fabricated score
+   values become null rather than being coerced to a number - a fabricated score
    would silently enter the clinical record and, later, the training data. */
 
 const clampInt = (value, min, max) => {

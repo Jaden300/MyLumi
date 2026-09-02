@@ -1,4 +1,4 @@
-/* Flow-agnostic stepper. Knows nothing about symptoms or sleep — it drives any
+/* Flow-agnostic stepper. Knows nothing about symptoms or sleep - it drives any
    flow config from lib/flows/. Both check-ins share this one machine. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -89,7 +89,7 @@ export function useCheckInFlow(flow, targetNightOf, { onComplete } = {}) {
     setValues((current) => ({ ...current, ...patch }));
   }, []);
 
-  /* Step transitions write immediately rather than waiting on the debounce —
+  /* Step transitions write immediately rather than waiting on the debounce -
      this is the checkpoint that has to survive a refresh. */
   const commitAndMove = useCallback(
     (nextIndex) => {

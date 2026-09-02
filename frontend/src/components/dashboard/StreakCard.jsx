@@ -3,7 +3,7 @@ import { Card } from '../ui/Card.jsx';
 export function StreakCard({ streak, nightDone, morningDue }) {
   const { current, longest } = streak;
 
-  /* The streak counts completed sleep episodes up to LAST night — tonight can't
+  /* The streak counts completed sleep episodes up to LAST night - tonight can't
      be complete yet. Saying what extends it next is more motivating than a bare
      number, and it explains why tonight's check-in didn't move it. */
   let hint;

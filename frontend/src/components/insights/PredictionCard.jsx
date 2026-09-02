@@ -7,10 +7,10 @@
    purpose. The interval is the honest answer; the single number is a convenience
    inside it, and a patient should not read it as a promise. */
 
+import { Link } from 'react-router-dom';
 import { Card } from '../ui/Card.jsx';
 import { ConfidenceBadge } from './ConfidenceBadge.jsx';
-
-const MAX_BURDEN = 54;
+import { MAX_SYMPTOM_BURDEN as MAX_BURDEN } from '../../lib/constants.js';
 
 /** Plain-language band. Never a diagnosis, never a recovery date. */
 function bandFor(value) {
@@ -21,7 +21,14 @@ function bandFor(value) {
   return 'a difficult day';
 }
 
-export function PredictionCard({ forecast }) {
+/**
+ * `compact` drops the drivers list and links to /insights for the reasoning.
+ *
+ * The number, its interval and its confidence stay together even in compact form
+ * - those three are the design system's floor for showing a prediction at all,
+ * and a compact variant is not a licence to drop one of them.
+ */
+export function PredictionCard({ forecast, compact = false }) {
   if (!forecast?.available) return null;
 
   const { predictedBurden, interval, drivers, confidence, nDays } = forecast;
@@ -35,12 +42,12 @@ export function PredictionCard({ forecast }) {
             <span className="text-muted text-xs">Estimated symptom burden</span>
             <div className="row" style={{ alignItems: 'baseline', gap: 'var(--space-2)' }}>
               <strong className="display-number">
-                {low}–{high}
+                {low}-{high}
               </strong>
               <span className="text-muted text-sm">of {MAX_BURDEN}</span>
             </div>
             <span className="text-muted text-xs">
-              Most likely around {predictedBurden} — {bandFor(predictedBurden)} for you.
+              Most likely around {predictedBurden} - {bandFor(predictedBurden)} for you.
             </span>
           </div>
           <ConfidenceBadge confidence={confidence} nDays={nDays} />
@@ -53,7 +60,7 @@ export function PredictionCard({ forecast }) {
           </p>
         )}
 
-        {drivers?.length > 0 && (
+        {!compact && drivers?.length > 0 && (
           <div className="stack stack--tight">
             <span className="text-muted text-xs">What's driving this</span>
             <ul className="driver-list">
@@ -75,6 +82,12 @@ export function PredictionCard({ forecast }) {
         <p className="text-muted text-xs">
           Based on patterns in your own check-ins. This is an estimate of how you
           may feel, not a medical prediction.
+          {compact && (
+            <>
+              {' '}
+              <Link to="/insights">See what's driving this</Link>
+            </>
+          )}
         </p>
       </div>
     </Card>

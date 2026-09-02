@@ -1,7 +1,7 @@
 import { TextArea } from '../../ui/TextArea.jsx';
 
 /* Both fields are optional. Requiring writing on a bad day is exactly when
-   someone abandons the app — and a forced entry is poor data anyway. */
+   someone abandons the app - and a forced entry is poor data anyway. */
 
 export function JournalStep({ values, setValue }) {
   return (
@@ -16,7 +16,7 @@ export function JournalStep({ values, setValue }) {
       <TextArea
         label="Anything that made your symptoms better or worse today?"
         optional
-        hint="Screens, exercise, noise, rest, caffeine — whatever you noticed."
+        hint="Screens, exercise, noise, rest, caffeine - whatever you noticed."
         placeholder="Optional."
         value={values.journal?.factors}
         onChange={(value) => setValue('journal.factors', value)}
