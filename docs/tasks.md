@@ -22,23 +22,28 @@ Phases follow [MyLumi_Plan.md](../MyLumi_Plan.md) §8 (tentative — reorder fre
 - [x] Limitations / about page (pulled forward from Phase 4)
 - [x] Unit + integration tests (71 passing)
 
-## Phase 3 — Intelligence (next)
+## Phase 3 — Intelligence ✅ (code complete — deploy outstanding)
 
-- [ ] Render backend scaffold + **deploy on day one of this phase**
-- [ ] Symptom burden forecasting model
-- [ ] Personal sleep–symptom correlation engine ← most demo-able, prioritize
-- [ ] NLP sentiment analysis on journal text
-- [ ] Anomaly detection
-- [ ] Cold-start / "building your baseline" state
+- [x] FastAPI backend scaffold — stateless, `backend/`, 68 tests
+- [x] Symptom burden forecasting model (ridge, explainable coefficients)
+- [x] Personal sleep–symptom correlation engine ← Holm-corrected, quotable output
+- [x] NLP sentiment analysis on journal text (separate endpoint + payload)
+- [x] Anomaly detection (robust median/MAD)
+- [x] Cold-start / "building your baseline" state
+- [x] Frontend integration — `lib/api.js`, `useInsights`, insight cards
+- [x] `docs/responsible-ai.md` (pulled forward from Phase 4)
+- [ ] **Deploy to Render** — `render.yaml` ready, needs an account action.
+      Then set `FRONTEND_ORIGINS` on the service and `VITE_API_URL` for the
+      frontend build, and record the URL in `docs/stack.md`.
 
 ## Phase 4 — Insights & Responsible AI
 
 - [ ] Daily recovery report
 - [ ] Insights page + weekly summary
 - [ ] Recovery trajectory chart
-- [ ] Prediction explanations + confidence display
-- [ ] Red-flag escalation logic
-- [ ] Document what crosses the wire → `docs/responsible-ai.md` (seed: `toFeatureRow`)
+- [ ] Wire the NLP endpoint into the UI + its consent gate (backend + client done)
+- [ ] Red-flag escalation logic — **rule-based and local**, never a network call
+- [x] Document what crosses the wire → `docs/responsible-ai.md`
 
 ## Phase 5 — Polish
 

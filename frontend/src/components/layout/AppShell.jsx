@@ -1,12 +1,22 @@
+import { useEffect } from 'react';
 import { NavLink, Link, Outlet } from 'react-router-dom';
 import { DisclaimerFooter } from './DisclaimerFooter.jsx';
 import { ThemeToggle } from '../ui/ThemeToggle.jsx';
 import { Banner } from '../ui/Banner.jsx';
 import { Lumi } from '../lumi/Lumi.jsx';
 import { useLumiData } from '../../hooks/useLumiData.jsx';
+import { pingHealth } from '../../lib/api.js';
 
 export function AppShell() {
   const { storageAvailable, storageError, recovery } = useLumiData();
+
+  /* Start Render's cold start early. The free tier sleeps after ~15 minutes and
+     takes ~50s to wake; kicking it here means the wake overlaps with the user
+     reading the dashboard instead of blocking them later. Fire-and-forget —
+     nothing waits on it and a failure is silent. */
+  useEffect(() => {
+    pingHealth();
+  }, []);
 
   return (
     <div className="app-shell">

@@ -5,6 +5,7 @@ import { StreakCard } from '../components/dashboard/StreakCard.jsx';
 import { StreakRescuePrompt } from '../components/dashboard/StreakRescuePrompt.jsx';
 import { LastNightSummary } from '../components/dashboard/LastNightSummary.jsx';
 import { SymptomHeatStrip } from '../components/history/SymptomHeatStrip.jsx';
+import { InsightsSection } from '../components/insights/InsightsSection.jsx';
 import { Card } from '../components/ui/Card.jsx';
 import { prevDay, toLocalISODate } from '../lib/dates.js';
 
@@ -47,6 +48,8 @@ export function Dashboard() {
       <StreakCard streak={streak} nightDone={status.nightDone} morningDue={status.morningDue} />
 
       {lastLogged && <LastNightSummary entry={lastLogged} />}
+
+      <InsightsSection />
 
       {hasAnyEntry && (
         <Card title={`Last ${TREND_DAYS} days`}>

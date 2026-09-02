@@ -10,3 +10,6 @@ backend/.venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# ...but the template is committed, since it documents the contract.
+!.env.example

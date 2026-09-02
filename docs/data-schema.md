@@ -89,4 +89,9 @@ One per calendar month, granted lazily on read (no cron). Redeemable **only for 
 
 ## The ML feature contract
 
-`toFeatureRow(entry, nextEntry, injuryDate)` in [`src/lib/derive.js`](../frontend/src/lib/derive.js) is the single chokepoint describing what would cross the wire to Render in Phase 3. It is deliberately readable and deliberately **excludes journal text** — free text is the most sensitive content in the app and will get its own explicit payload when NLP lands, never sent as a side effect of a numeric call.
+`toFeatureRow(entry, nextEntry, injuryDate)` in [`src/lib/derive.js`](../frontend/src/lib/derive.js) is the single chokepoint describing what crosses the wire to Render. It is deliberately readable and deliberately **excludes journal text** — free text is the most sensitive content in the app and has its own explicit payload (`POST /v1/nlp`), never sent as a side effect of a numeric call.
+
+**As of Phase 3 this is live.** The full contract, field by field, is in [`docs/responsible-ai.md`](responsible-ai.md); the Python mirror is `backend/app/schemas.py`. Two things worth knowing here:
+
+- **Pairing happens in the caller, not in `toFeatureRow`.** `buildRows` in [`src/hooks/useInsights.js`](../frontend/src/hooks/useInsights.js) passes `nextEntry` only when the two nights are genuinely adjacent. If a user misses a night, the earlier row gets no prediction target rather than being paired across the gap — otherwise the model would learn a two-day transition labelled as a one-day one, which never surfaces as an error, only as a quietly wrong model.
+- **Nulls survive the whole journey.** A missing answer stays null through the row, the request, and the model, which drops the row from that fit rather than imputing. The no-fabrication rule does not stop applying at the network boundary.

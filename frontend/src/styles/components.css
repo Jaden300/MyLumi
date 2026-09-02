@@ -644,6 +644,96 @@
 .badge--partial { color: var(--caution); }
 .badge--complete { color: var(--positive); }
 
+/* --- insights ------------------------------------------------------------------
+   Prediction, correlation and anomaly cards. Deliberately quiet: these carry the
+   least certain information in the app, so they must not look the loudest. */
+
+.confidence {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Low confidence is muted rather than warning-coloured. An amber pill would read
+   as "something is wrong", when the honest message is "we're still learning". */
+.confidence--low { color: var(--text-muted); }
+.confidence--moderate { color: var(--info); }
+.confidence--good { color: var(--positive); }
+
+.confidence__count { font-weight: 400; opacity: 0.85; }
+
+.insight-caveat {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  border-left: 3px solid var(--caution);
+}
+
+.insight-context {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+}
+
+.driver-list,
+.finding-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.driver {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+/* Direction is carried by the word ("pushes this up") as well as the arrow and
+   colour — never rely on colour alone. */
+.driver__arrow {
+  font-weight: 700;
+  line-height: 1.4;
+}
+.driver__arrow--increases { color: var(--sev-4); }
+.driver__arrow--decreases { color: var(--positive); }
+
+.finding {
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--border);
+}
+
+.finding__statement {
+  margin: 0;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+}
+
+.finding__threshold {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--accent);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.finding__stats { margin: var(--space-2) 0 0; }
+
 /* --- responsive --------------------------------------------------------------- */
 
 @media (max-width: 420px) {
@@ -651,4 +741,6 @@
   .app-main { padding: var(--space-4) var(--space-3) var(--space-7); }
   .scale__options { gap: 2px; }
   .navlink { padding: 0 var(--space-2); }
+  /* Confidence badge drops below the value rather than squeezing it. */
+  .card .row--between { flex-wrap: wrap; gap: var(--space-2); }
 }
