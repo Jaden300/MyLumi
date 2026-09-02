@@ -1,4 +1,4 @@
-/* MyLumi design tokens — see docs/design-system.md
+/* MyLumi design tokens - see docs/design-system.md
    Dark-first. Light theme overrides below. */
 
 :root {
@@ -8,6 +8,13 @@
   --brand-magenta: #d6249f;
   --brand-magenta-soft: #e85db8;
   --brand-gradient: linear-gradient(135deg, #4c1d95 0%, #d6249f 100%);
+
+  /* Molten core. These stay warm in both themes: they are the light source
+     inside Lumi, not a surface colour, so they do not invert with the theme. */
+  --brand-warm-core: #ffb265;
+  --brand-warm-mid: #f0479a;
+  --brand-warm-halo: #f5679a;
+  --brand-warm-drip: #f79a5c;
 
   /* Dark theme (default) */
   --bg: #140a2e;
@@ -75,7 +82,7 @@
   color-scheme: dark;
 }
 
-/* Light theme — explicit choice */
+/* Light theme - explicit choice */
 :root[data-theme="light"] {
   --bg: #faf8ff;
   --surface: #ffffff;
