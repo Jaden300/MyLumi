@@ -1,16 +1,41 @@
-# React + Vite
+# MyLumi - frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite. See the [project README](../README.md) for what MyLumi is and how
+the pieces fit together.
 
-Currently, two official plugins are available:
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm test         # vitest - 221 tests
+npm run build
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Set `VITE_API_URL` to point at the inference API (see `.env.example`). Unset, the
+app runs fully on local computation - only the model-backed insight cards go
+quiet, and they say so.
 
-## React Compiler
+## Layout
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Path | Contents |
+|---|---|
+| `src/lib/` | Pure functions - dates, storage, derived features, statistics. Fully tested. |
+| `src/lib/derive.js` | **Numeric outbound chokepoint** (`toFeatureRow`) |
+| `src/lib/journal.js` | **Text outbound chokepoint** (`buildJournalTexts`) + consent |
+| `src/lib/api.js` | The only file that makes network calls |
+| `src/lib/redFlags.js` | Safety rules. Imports no API client, no storage, no React. |
+| `src/hooks/` | State: `useLumiData` (single source), check-in flow, insights, consent |
+| `src/components/` | UI, grouped by area |
+| `src/pages/` | One per route |
+| `src/styles/` | `tokens.css` → `base.css` → `components.css`, in that order |
 
-## Expanding the Oxlint configuration
+## Conventions
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+- Components read and mutate through `useLumiData` - they never import
+  `storage.js` or `entries.js` directly.
+- A missing answer is `null`, never `0`. `RatingScale` uses discrete buttons
+  rather than a slider precisely so "unanswered" can stay empty.
+- Non-clinical state (theme, dismissals, consent, milestone acknowledgement)
+  lives in `prefs`, never in `data` - `data` is the clinical record and the
+  export payload.
+- Charts are hand-rolled SVG. Severity is encoded by size **and** colour, gaps
+  are drawn as gaps, and values are reachable on touch.

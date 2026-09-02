@@ -24,7 +24,7 @@ Interactive API docs: http://localhost:8000/docs
 .venv/bin/python -m pytest        # 68 tests
 ```
 
-Tests are statistically seeded — no flaky assertions. `tests/fixtures.py` plants
+Tests are statistically seeded - no flaky assertions. `tests/fixtures.py` plants
 a *lagged* sleep→symptom relationship (night `i` sleep drives day `i+1` burden),
 which is the relationship the product actually claims to find.
 
@@ -33,9 +33,9 @@ which is the relationship the product actually claims to find.
 ```
 app/
   main.py          app, CORS, the no-logging rule
-  schemas.py       the wire contract — mirrors toFeatureRow in the frontend
+  schemas.py       the wire contract - mirrors toFeatureRow in the frontend
   routers/         thin HTTP layer
-  models/          the ML — pure functions, no FastAPI imports, unit-testable
+  models/          the ML - pure functions, no FastAPI imports, unit-testable
 tests/
 ```
 
@@ -47,11 +47,11 @@ without a server, mirroring how `frontend/src/lib/` is pure and fully covered.
 | Endpoint | Purpose |
 |---|---|
 | `GET /health` | Health check, and the frontend's wake-up ping |
-| `POST /v1/insights` | **The one the app calls** — forecast + correlation + anomaly in a single request |
+| `POST /v1/insights` | **The one the app calls** - forecast + correlation + anomaly in a single request |
 | `POST /v1/forecast` | Ridge regression on lagged features |
 | `POST /v1/correlation` | Spearman + threshold search |
 | `POST /v1/anomaly` | Robust (median/MAD) outlier detection |
-| `POST /v1/nlp` | Journal sentiment — **separate payload, separate consent** |
+| `POST /v1/nlp` | Journal sentiment - **separate payload, separate consent** |
 
 `/v1/insights` batches the three numeric models so a cold free-tier instance is
 woken once rather than three times, and so all three dashboard cards describe the
@@ -62,14 +62,14 @@ same snapshot.
 Every response carries `available`, `reason`, `confidence`, `nDays`.
 
 `available: false` is a **200, not an error**. "We don't have enough data to say
-anything yet" is the normal path — most users spend their first week there — so
+anything yet" is the normal path - most users spend their first week there - so
 it is modelled as a valid answer rather than an exception.
 
 | Complete episodes | Tier | Behaviour |
 |---|---|---|
-| 0–6 | `none` | **No number is emitted at all** |
-| 7–13 | `low` | Shown, labelled low confidence, wide interval |
-| 14–20 | `moderate` | Normal |
+| 0-6 | `none` | **No number is emitted at all** |
+| 7-13 | `low` | Shown, labelled low confidence, wide interval |
+| 14-20 | `moderate` | Normal |
 | 21+ | `good` | Full confidence |
 
 The `none` tier matters most. A prediction from four nights would look exactly as
@@ -87,7 +87,7 @@ is the only honest option.
 - **Never claim causation.** Findings are phrased "on days following…", and a
   test asserts the causal vocabulary never appears.
 - **Correct for multiple comparisons.** Four simultaneous tests at p<0.05 gave a
-  false positive on ~50% of pure-noise datasets. Holm–Bonferroni cuts that to
+  false positive on ~50% of pure-noise datasets. Holm-Bonferroni cuts that to
   ~20% while still catching 100% of genuine planted effects.
 - **Explain every prediction.** Standardised ridge coefficients *are* the
   explanation, read straight off the fitted model rather than reconstructed by a

@@ -1,10 +1,10 @@
-# Data Schema — MyLumi
+# Data Schema - MyLumi
 
 > Local-first. Everything lives in the browser; there is no account and no server copy.
 
 ## The core decision: key by *sleep episode*
 
-A night check-in on Jan 5 and the morning check-in on Jan 6 describe **one sleep episode**. Entries are keyed by **`nightOf`** — the local date the night *began* — and hold both halves:
+A night check-in on Jan 5 and the morning check-in on Jan 6 describe **one sleep episode**. Entries are keyed by **`nightOf`** - the local date the night *began* - and hold both halves:
 
 ```
 entries["2026-01-05"] = {
@@ -18,10 +18,10 @@ entries["2026-01-05"] = {
 
 **What this buys us:**
 - Sleep duration is a pure function of *one* record (`deriveSleepDuration`).
-- "Is the morning check-in due?" is a check on *yesterday's* record — one lookup.
+- "Is the morning check-in due?" is a check on *yesterday's* record - one lookup.
 - One record = one ML training row. Forecasting is "this episode → next episode."
 
-**The one wart, stated honestly:** `morning.moodMorning` etc. are observations about the *following* calendar day. That's intentional — they're the outcome of that night's sleep. To plot them on a calendar, use `morningDateOf(nightOf)`.
+**The one wart, stated honestly:** `morning.moodMorning` etc. are observations about the *following* calendar day. That's intentional - they're the outcome of that night's sleep. To plot them on a calendar, use `morningDateOf(nightOf)`.
 
 **Partial episodes are first-class.** `{ night: {...}, morning: null }` is normal and valid. No field is ever faked to fill a gap.
 
@@ -32,13 +32,13 @@ currentNightOf(now):  local hour < 4  →  yesterday's date
                       otherwise       →  today's date
 ```
 
-A patient checking in at 1:15am means "the night of yesterday." A midnight rollover would file it on the wrong day and break their streak — for exactly the insomnia the app exists to track. Everything (which entry is today, what's due, whether the streak survives) is a function of this one call.
+A patient checking in at 1:15am means "the night of yesterday." A midnight rollover would file it on the wrong day and break their streak - for exactly the insomnia the app exists to track. Everything (which entry is today, what's due, whether the streak survives) is a function of this one call.
 
 ## Storage keys
 
 | Key | Contents |
 |---|---|
-| `mylumi.v1.data` | The whole record — one JSON blob (~40KB for a month) |
+| `mylumi.v1.data` | The whole record - one JSON blob (~40KB for a month) |
 | `mylumi.v1.draft.night` | In-progress night check-in |
 | `mylumi.v1.draft.morning` | In-progress morning check-in |
 | `mylumi.v1.prefs` | Theme and other non-clinical UI prefs |
@@ -51,30 +51,30 @@ The shared `mylumi.` prefix is what makes "delete all my data" provably complete
 
 See [`src/lib/schema.js`](../frontend/src/lib/schema.js) for the authoritative structure. Notable fields:
 
-- **`night.symptomBurden`** — the sum of the 9 PCSS items (0–54). Stored despite being derived: it's read by the dashboard, history, chart, and later the forecast, and computing it in six places is where inconsistency starts. One writer (`buildNightBlock`), migration-recomputable.
-- **`morning.awakenings`** — a **string** (`"0" | "1" | "2" | "3+"`). Storing `3` would silently discard "or more" and lie to the model. Only `awakeningsToOrdinal` flattens it, and that loss is documented at the point it happens.
-- **Times** (`plannedBedtime`, `wakeTime`) — wall-clock `"HH:mm"` strings, not instants. These are self-reports ("about half eleven"), not measurements; an instant would over-claim precision. `<input type="time">` returns exactly this format.
-- **Sleep duration** — *not* stored. Derived from the pair, both of which live in the same record.
+- **`night.symptomBurden`** - the sum of the 9 PCSS items (0-54). Stored despite being derived: it's read by the dashboard, history, chart, and later the forecast, and computing it in six places is where inconsistency starts. One writer (`buildNightBlock`), migration-recomputable.
+- **`morning.awakenings`** - a **string** (`"0" | "1" | "2" | "3+"`). Storing `3` would silently discard "or more" and lie to the model. Only `awakeningsToOrdinal` flattens it, and that loss is documented at the point it happens.
+- **Times** (`plannedBedtime`, `wakeTime`) - wall-clock `"HH:mm"` strings, not instants. These are self-reports ("about half eleven"), not measurements; an instant would over-claim precision. `<input type="time">` returns exactly this format.
+- **Sleep duration** - *not* stored. Derived from the pair, both of which live in the same record.
 
 ## Rules that protect the clinical record
 
 **No backfilling, ever.** Check-in routes take no date parameter; the target night is always derived. Retrospective symptom recall is unreliable and would poison training data. A missed night stays missed.
 
-**No silent overwrites.** `saveNightCheckIn`/`saveMorningCheckIn` refuse to replace an existing block without an explicit `overwrite` flag — a wrong device clock could otherwise point at a night already logged.
+**No silent overwrites.** `saveNightCheckIn`/`saveMorningCheckIn` refuse to replace an existing block without an explicit `overwrite` flag - a wrong device clock could otherwise point at a night already logged.
 
 **A rescued night writes no data.** See below.
 
 ## Streaks
 
-A `nightOf` counts when **both** halves are present. The streak is **derived on read** by walking backwards from `prevDay(currentNightOf)` — the stored `current`/`longest` are a cache, and the computed value always wins. No timers, no catch-up job; a user who disappears for a week gets a correct 0 automatically.
+A `nightOf` counts when **both** halves are present. The streak is **derived on read** by walking backwards from `prevDay(currentNightOf)` - the stored `current`/`longest` are a cache, and the computed value always wins. No timers, no catch-up job; a user who disappears for a week gets a correct 0 automatically.
 
 **Tonight is never counted as broken.** It can't be complete yet, so evaluation stops at last night. Otherwise every user would see a broken streak all evening.
 
 ### Rescue
 
-One per calendar month, granted lazily on read (no cron). Redeemable **only for last night**, and only if the interrupted run was ≥ 2 — rescuing a 1-night streak wastes the allowance on nothing. Unused rescues don't roll over. Scoped to the *current* month, so rescuing Jan 31 on Feb 1 spends February's allowance (marginally generous, but explainable in one sentence).
+One per calendar month, granted lazily on read (no cron). Redeemable **only for last night**, and only if the interrupted run was ≥ 2 - rescuing a 1-night streak wastes the allowance on nothing. Unused rescues don't roll over. Scoped to the *current* month, so rescuing Jan 31 on Feb 1 spends February's allowance (marginally generous, but explainable in one sentence).
 
-**A rescue writes no entry data.** `rescueHistory` records it and history labels the night "Streak rescued — no data logged." The streak is a motivation feature and must never put invented scores into the clinical record.
+**A rescue writes no entry data.** `rescueHistory` records it and history labels the night "Streak rescued - no data logged." The streak is a motivation feature and must never put invented scores into the clinical record.
 
 ## Failure modes handled
 
@@ -89,9 +89,9 @@ One per calendar month, granted lazily on read (no cron). Redeemable **only for 
 
 ## The ML feature contract
 
-`toFeatureRow(entry, nextEntry, injuryDate)` in [`src/lib/derive.js`](../frontend/src/lib/derive.js) is the single chokepoint describing what crosses the wire to Render. It is deliberately readable and deliberately **excludes journal text** — free text is the most sensitive content in the app and has its own explicit payload (`POST /v1/nlp`), never sent as a side effect of a numeric call.
+`toFeatureRow(entry, nextEntry, injuryDate)` in [`src/lib/derive.js`](../frontend/src/lib/derive.js) is the single chokepoint describing what crosses the wire to Render. It is deliberately readable and deliberately **excludes journal text** - free text is the most sensitive content in the app and has its own explicit payload (`POST /v1/nlp`), never sent as a side effect of a numeric call.
 
 **As of Phase 3 this is live.** The full contract, field by field, is in [`docs/responsible-ai.md`](responsible-ai.md); the Python mirror is `backend/app/schemas.py`. Two things worth knowing here:
 
-- **Pairing happens in the caller, not in `toFeatureRow`.** `buildRows` in [`src/hooks/useInsights.js`](../frontend/src/hooks/useInsights.js) passes `nextEntry` only when the two nights are genuinely adjacent. If a user misses a night, the earlier row gets no prediction target rather than being paired across the gap — otherwise the model would learn a two-day transition labelled as a one-day one, which never surfaces as an error, only as a quietly wrong model.
+- **Pairing happens in the caller, not in `toFeatureRow`.** `buildRows` in [`src/hooks/useInsights.js`](../frontend/src/hooks/useInsights.js) passes `nextEntry` only when the two nights are genuinely adjacent. If a user misses a night, the earlier row gets no prediction target rather than being paired across the gap - otherwise the model would learn a two-day transition labelled as a one-day one, which never surfaces as an error, only as a quietly wrong model.
 - **Nulls survive the whole journey.** A missing answer stays null through the row, the request, and the model, which drops the row from that fit rather than imputing. The no-fabrication rule does not stop applying at the network boundary.
