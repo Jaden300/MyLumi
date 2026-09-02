@@ -3,7 +3,7 @@
 A lexicon scorer, not a transformer. Three reasons, in order of weight:
 
 1. It runs in milliseconds with no model download, so the free-tier service stays
-   small and cold-starts fast — the single biggest demo risk in this project.
+   small and cold-starts fast - the single biggest demo risk in this project.
 2. It is fully inspectable. Every score decomposes into the specific words that
    produced it, which is what the Responsible AI story requires. A fine-tuned
    classifier's output is not explainable to a patient reading a recovery card.
@@ -26,7 +26,7 @@ import numpy as np
 from .confidence import tier_for
 
 # Weighted -3..+3, oriented to concussion recovery journalling. Deliberately
-# small and readable — the whole point is that a human can audit it.
+# small and readable - the whole point is that a human can audit it.
 LEXICON = {
     # negative
     "awful": -3, "terrible": -3, "unbearable": -3, "horrible": -3, "worst": -3,
@@ -60,7 +60,7 @@ MIN_POINTS_FOR_TREND = 5
 def score_text(text: str) -> tuple[Optional[float], int]:
     """Score one entry to roughly -1..+1. Returns (sentiment, word_count).
 
-    None when there are too few words to say anything — an empty or three-word
+    None when there are too few words to say anything - an empty or three-word
     entry gets no sentiment rather than a neutral 0, because 0 would plot as a
     real, meaningfully-neutral day.
     """

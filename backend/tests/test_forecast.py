@@ -43,7 +43,7 @@ def test_lower_confidence_gives_a_wider_interval():
 
 
 def test_every_prediction_is_explained():
-    """MyLumi_Plan.md 10.2 — if we can't explain it, it doesn't ship."""
+    """MyLumi_Plan.md 10.2 - if we can't explain it, it doesn't ship."""
     result = forecast(to_episodes(make_rows(30)))
     assert result["drivers"]
     for driver in result["drivers"]:

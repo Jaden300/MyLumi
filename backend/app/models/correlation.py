@@ -90,7 +90,7 @@ def _phrase(feature: str, rho: float) -> str:
     # rho is the association between the feature and the FOLLOWING day's burden.
     # rho > 0: more of this feature goes with a heavier next day.
     # Say it in terms of more/less of the raw measure rather than "better" or
-    # "worse" — for sleep duration "better" is ambiguous (longer? more regular?),
+    # "worse" - for sleep duration "better" is ambiguous (longer? more regular?),
     # and pairing a direction word with a quality word is how this sentence came
     # out exactly backwards the first time.
     more = "more" if feature != "sleepQuality" else "higher"
@@ -134,7 +134,7 @@ def correlate(episodes: list[Episode]) -> dict:
     # Test every candidate first, then correct for multiple comparisons before
     # deciding what to report. Testing 4 features at p<0.05 independently means
     # roughly a 1-in-5 chance of at least one false positive per user, and
-    # measured on pure-noise data it was far worse than that — around half of
+    # measured on pure-noise data it was far worse than that - around half of
     # noise datasets produced a "finding". A patient being told their stress
     # predicts their symptoms, on the strength of noise, is exactly the failure
     # this project cannot afford.
@@ -163,7 +163,7 @@ def correlate(episodes: list[Episode]) -> dict:
         if item[2] <= ALPHA / (m - i):
             surviving.append(item)
         else:
-            break  # Holm stops at the first failure — everything after is rejected too
+            break  # Holm stops at the first failure - everything after is rejected too
 
     findings = []
     for feature, rho, p, x, y in surviving:

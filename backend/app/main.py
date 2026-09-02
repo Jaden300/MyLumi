@@ -13,7 +13,7 @@ promise in CLAUDE.md.
 Not in a handler, not in middleware, not "temporarily" while debugging. A log
 line containing symptom scores or journal text is clinical data at rest on a
 server, which is precisely what this architecture promises does not exist. Log
-status codes, paths and latency — never payloads. The same rule applies to
+status codes, paths and latency - never payloads. The same rule applies to
 exception handlers: the one below deliberately returns a generic message rather
 than echoing the offending input.
 """
@@ -48,7 +48,7 @@ origins = DEFAULT_ORIGINS + [o.strip() for o in extra.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=False,  # no cookies, no sessions — there is nothing to authenticate
+    allow_credentials=False,  # no cookies, no sessions - there is nothing to authenticate
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )

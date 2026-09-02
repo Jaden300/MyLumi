@@ -1,4 +1,4 @@
-"""Batched insights — the endpoint the app actually calls.
+"""Batched insights - the endpoint the app actually calls.
 
 One request runs all three numeric models. On Render's free tier a cold start
 costs ~50s, and paying that once beats paying it three times; it also guarantees

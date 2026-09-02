@@ -2,7 +2,7 @@
 
 Separate endpoint, separate request model, separate consent step in the UI. Free
 text is the most sensitive content in the app and must never be sent as an
-incidental side effect of a numeric call — which is why NlpRequest exists rather
+incidental side effect of a numeric call - which is why NlpRequest exists rather
 than adding a `texts` field to InsightRequest.
 
 Text is scored in-process and discarded. Nothing is written, nothing is logged.

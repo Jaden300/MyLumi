@@ -1,4 +1,4 @@
-# Pinned — a hackathon demo must not break because a transitive release changed.
+# Pinned - a hackathon demo must not break because a transitive release changed.
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 pydantic==2.10.4

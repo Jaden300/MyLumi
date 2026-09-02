@@ -1,6 +1,6 @@
 """Synthetic episodes with a KNOWN planted relationship.
 
-The point of a fixture here is not "some data" — it is data where we know the
+The point of a fixture here is not "some data" - it is data where we know the
 right answer, so a test can assert the model recovers it. If the correlation
 engine cannot find a relationship we deliberately put in, it will not find a real
 one either.
@@ -29,7 +29,7 @@ def make_rows(
 
     coupling is burden points per hour of sleep lost. With coupling=4 and 7 hours
     of typical sleep, a 5-hour night should read ~8 points worse than a 9-hour
-    one — a strong but not absurd effect, in the range these models must catch.
+    one - a strong but not absurd effect, in the range these models must catch.
     """
     rng = np.random.default_rng(seed)
     rows = []

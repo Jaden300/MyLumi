@@ -41,7 +41,7 @@ def test_statement_direction_matches_the_data():
     The planted effect is: LESS sleep -> HEAVIER next day. So a sleep-duration
     finding must talk about burden being higher after *less* sleep. An earlier
     version paired the direction word with "better" and produced "higher on days
-    following better sleep duration" — true rho, inverted English.
+    following better sleep duration" - true rho, inverted English.
     """
     result = correlate(to_episodes(make_rows(45, coupling=6.0, noise=1.0)))
     for finding in result["findings"]:

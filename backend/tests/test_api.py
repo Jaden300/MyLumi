@@ -54,7 +54,7 @@ def test_numeric_endpoints_reject_journal_text():
     """Free text must not be smuggled through a numeric call.
 
     Pydantic ignores unknown fields, so the guarantee is that the field simply
-    has nowhere to land in FeatureRow — verified here so a future 'convenience'
+    has nowhere to land in FeatureRow - verified here so a future 'convenience'
     addition to the schema breaks a test.
     """
     from app.schemas import FeatureRow

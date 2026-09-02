@@ -123,7 +123,7 @@ def build_matrix(
 ) -> tuple[np.ndarray, np.ndarray, list[str]]:
     """Rows with every requested feature AND the target present.
 
-    Returns (X, y, nights_used). Rows are dropped, never imputed — see module
+    Returns (X, y, nights_used). Rows are dropped, never imputed - see module
     docstring. DST nights are excluded by default because their sleep duration is
     an hour out by construction (see dstShiftMinutes in the frontend); training on
     a known-wrong number teaches the model a false relationship.

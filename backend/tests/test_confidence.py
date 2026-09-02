@@ -1,4 +1,4 @@
-"""Tier boundaries. These numbers are a clinical-honesty policy, not a detail —
+"""Tier boundaries. These numbers are a clinical-honesty policy, not a detail -
 if a boundary moves, someone gets a prediction we said they shouldn't."""
 
 import pytest

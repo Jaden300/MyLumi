@@ -1,4 +1,4 @@
-"""Confidence tiers — the thing that keeps the app honest.
+"""Confidence tiers - the thing that keeps the app honest.
 
 Every model routes its "do I have enough data to speak?" decision through here,
 so there is one place where that judgement lives and one place to argue with.
@@ -7,7 +7,7 @@ Thresholds come from MyLumi_Plan.md 3.3e (models cannot say anything meaningful
 before ~7 days) and the "14 days logged - your model is now personalized"
 milestone.
 
-The important tier is `none`. It does not mean "predict with low confidence" —
+The important tier is `none`. It does not mean "predict with low confidence" -
 it means emit no number at all. A prediction from four nights of data would look
 exactly as authoritative as one from forty, and the user has no way to tell them
 apart. Withholding is the only honest option.

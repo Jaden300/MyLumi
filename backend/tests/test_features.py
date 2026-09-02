@@ -1,6 +1,6 @@
 """The missing-value contract.
 
-CLAUDE.md: "Never invent data. An unanswered field stays null — a fabricated 0
+CLAUDE.md: "Never invent data. An unanswered field stays null - a fabricated 0
 enters the clinical record." These tests are that rule, enforced at the point
 where data becomes a matrix.
 """

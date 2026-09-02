@@ -21,7 +21,7 @@ from .features import Episode, burden_series, complete_count
 # below is interpretable on the same scale as a z-score.
 MAD_TO_SIGMA = 1.4826
 
-THRESHOLD = 2.5  # conservative — we would rather miss one than cry wolf
+THRESHOLD = 2.5  # conservative - we would rather miss one than cry wolf
 MIN_POINTS = 7
 RECENT_WINDOW = 14  # only surface anomalies the user can still remember
 

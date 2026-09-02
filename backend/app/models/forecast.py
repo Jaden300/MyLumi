@@ -44,7 +44,7 @@ RIDGE_ALPHA = 1.0
 def _fit_ridge(x: np.ndarray, y: np.ndarray, alpha: float = RIDGE_ALPHA):
     """Standardise, solve the closed form, return (coefs, intercept, mu, sigma).
 
-    Standardising first is what makes the coefficients comparable to each other —
+    Standardising first is what makes the coefficients comparable to each other -
     without it a feature measured in minutes would dwarf one measured 0-6 purely
     because of its units, and the "top drivers" list would be meaningless.
 
