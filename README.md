@@ -1,8 +1,23 @@
-# MyLumi
+<p align="center">
+  <img src="docs/assets/wordmark.svg" alt="MyLumi" width="340">
+</p>
 
-**A concussion-recovery journal that learns your own sleep-symptom pattern - and refuses to guess.**
+<p align="center">
+  <strong>A concussion-recovery journal that learns your own sleep-symptom pattern, and refuses to guess.</strong>
+</p>
 
-Hack for Humanity 2026.
+<p align="center">
+  <a href="#run-it-locally"><img alt="React 19" src="https://img.shields.io/badge/React-19-4C1D95?style=flat-square&logo=react&logoColor=white"></a>
+  <a href="#run-it-locally"><img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-stateless-D6249F?style=flat-square&logo=fastapi&logoColor=white"></a>
+  <img alt="Tests" src="https://img.shields.io/badge/tests-412%20passing-4ADE80?style=flat-square">
+  <img alt="Local first" src="https://img.shields.io/badge/data-local%20first-4C1D95?style=flat-square">
+</p>
+
+<p align="center">
+  <em>Hack for Humanity 2026</em>
+</p>
+
+---
 
 Twice a day, once before bed and once after waking, MyLumi asks about symptoms,
 mood and sleep. Over a few weeks it learns *this person's* relationship between
