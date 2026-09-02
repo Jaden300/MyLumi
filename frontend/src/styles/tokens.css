@@ -1,0 +1,139 @@
+/* MyLumi design tokens — see docs/design-system.md
+   Dark-first. Light theme overrides below. */
+
+:root {
+  /* Brand */
+  --brand-purple: #4c1d95;
+  --brand-purple-deep: #2e1065;
+  --brand-magenta: #d6249f;
+  --brand-magenta-soft: #e85db8;
+  --brand-gradient: linear-gradient(135deg, #4c1d95 0%, #d6249f 100%);
+
+  /* Dark theme (default) */
+  --bg: #140a2e;
+  --surface: #1e1240;
+  --surface-raised: #2a1a56;
+  --border: #3b2a6b;
+  --text: #f4f1fb;
+  --text-muted: #b9aed6;
+  --accent: var(--brand-magenta);
+  --accent-hover: var(--brand-magenta-soft);
+  --on-accent: #ffffff;
+  --focus-ring: #e85db8;
+
+  /* Semantic */
+  --positive: #4ade80;
+  --caution: #fbbf24;
+  --alert: #fb7185;
+  --info: #818cf8;
+
+  /* Symptom severity ramp 0-6 */
+  --sev-0: #4ade80;
+  --sev-1: #a3e635;
+  --sev-2: #fbbf24;
+  --sev-3: #fb923c;
+  --sev-4: #f87171;
+  --sev-5: #e11d6f;
+  --sev-6: #be123c;
+
+  /* Type */
+  --font-display: "League Spartan", "Inter", system-ui, -apple-system, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+
+  --fs-display: 2.75rem;
+  --fs-h1: 2rem;
+  --fs-h2: 1.5rem;
+  --fs-h3: 1.2rem;
+  --fs-body: 1rem;
+  --fs-sm: 0.875rem;
+  --fs-xs: 0.75rem;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Shape */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-full: 999px;
+  --shadow-card: 0 4px 24px rgba(20, 10, 46, 0.35);
+  --content-max: 560px;
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  color-scheme: dark;
+}
+
+/* Light theme — explicit choice */
+:root[data-theme="light"] {
+  --bg: #faf8ff;
+  --surface: #ffffff;
+  --surface-raised: #f3eeff;
+  --border: #e4dbf7;
+  --text: #1a1033;
+  --text-muted: #5b4d80;
+  --accent: #b01c82;
+  --accent-hover: #96186f;
+  --on-accent: #ffffff;
+  --focus-ring: #b01c82;
+
+  --positive: #15803d;
+  --caution: #b45309;
+  --alert: #be123c;
+  --info: #4f46e5;
+
+  --sev-0: #15803d;
+  --sev-1: #4d7c0f;
+  --sev-2: #b45309;
+  --sev-3: #c2410c;
+  --sev-4: #dc2626;
+  --sev-5: #be123c;
+  --sev-6: #9f1239;
+
+  --shadow-card: 0 4px 20px rgba(76, 29, 149, 0.1);
+
+  color-scheme: light;
+}
+
+/* System preference when no explicit choice is stored */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]):not([data-theme="light"]) {
+    --bg: #faf8ff;
+    --surface: #ffffff;
+    --surface-raised: #f3eeff;
+    --border: #e4dbf7;
+    --text: #1a1033;
+    --text-muted: #5b4d80;
+    --accent: #b01c82;
+    --accent-hover: #96186f;
+    --focus-ring: #b01c82;
+
+    --positive: #15803d;
+    --caution: #b45309;
+    --alert: #be123c;
+    --info: #4f46e5;
+
+    --sev-0: #15803d;
+    --sev-1: #4d7c0f;
+    --sev-2: #b45309;
+    --sev-3: #c2410c;
+    --sev-4: #dc2626;
+    --sev-5: #be123c;
+    --sev-6: #9f1239;
+
+    --shadow-card: 0 4px 20px rgba(76, 29, 149, 0.1);
+
+    color-scheme: light;
+  }
+}
