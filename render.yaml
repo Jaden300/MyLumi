@@ -1,4 +1,4 @@
-# Render blueprint. One stateless Python web service — no database, by design.
+# Render blueprint. One stateless Python web service - no database, by design.
 # See app/main.py for why there is nothing to persist.
 services:
   - type: web
