@@ -22,6 +22,9 @@ import { BaselineProgress } from './BaselineProgress.jsx';
 import { PredictionCard } from './PredictionCard.jsx';
 import { CorrelationCard } from './CorrelationCard.jsx';
 import { AnomalyCard } from './AnomalyCard.jsx';
+import { SymptomProfileCard } from './SymptomProfileCard.jsx';
+import { RecoveryStateCard } from './RecoveryStateCard.jsx';
+import { ModelHonestyCard } from './ModelHonestyCard.jsx';
 import { Card } from '../ui/Card.jsx';
 import { Button } from '../ui/Button.jsx';
 import { Lumi } from '../lumi/Lumi.jsx';
@@ -48,7 +51,8 @@ export function InsightsSection({ variant = 'full' }) {
 
   if (!insights) return null;
 
-  const { forecast, correlation, anomaly, offline } = insights;
+  const { forecast, correlation, anomaly, symptoms, validation, recoveryState, offline } =
+    insights;
 
   if (offline) {
     /* The dashboard already has plenty to say when the service is down, and a
@@ -63,9 +67,6 @@ export function InsightsSection({ variant = 'full' }) {
             <Lumi size={44} state="offline" />
             <p className="text-sm">{forecast.reason}</p>
           </div>
-          <p className="text-muted text-xs">
-            Your check-ins are stored on this device and are unaffected.
-          </p>
           {/* The service is usually just asleep, and the first request is what
               wakes it - so the second one often succeeds. Without this the only
               way to retry was a full page reload. */}
@@ -79,8 +80,9 @@ export function InsightsSection({ variant = 'full' }) {
     );
   }
 
-  // Nothing to say yet. Show the one honest state rather than three empty cards.
-  const anyAvailable = forecast.available || correlation.available || anomaly.available;
+  // Nothing to say yet. Show the one honest state rather than six empty cards.
+  const anyAvailable = [forecast, correlation, anomaly, symptoms, validation, recoveryState]
+    .some((section) => section?.available);
   if (!anyAvailable) {
     if (compact) return null;
     return <BaselineProgress nDays={forecast.nDays} reason={forecast.reason} />;
@@ -88,11 +90,18 @@ export function InsightsSection({ variant = 'full' }) {
 
   if (compact) return <PredictionCard forecast={forecast} compact />;
 
+  /* Order is an argument, not a layout preference: the findings first, then the
+     audit of the findings. Showing "here is how often this is wrong" before
+     showing anything it produced would read as a disclaimer; showing it after
+     reads as the work being checked. */
   return (
     <>
       <PredictionCard forecast={forecast} />
+      <RecoveryStateCard recoveryState={recoveryState} />
+      <SymptomProfileCard symptoms={symptoms} />
       <CorrelationCard correlation={correlation} />
       <AnomalyCard anomaly={anomaly} />
+      <ModelHonestyCard validation={validation} />
     </>
   );
 }

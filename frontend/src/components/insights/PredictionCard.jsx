@@ -9,6 +9,7 @@
 
 import { Link } from 'react-router-dom';
 import { Card } from '../ui/Card.jsx';
+import { Lumi } from '../lumi/Lumi.jsx';
 import { ConfidenceBadge } from './ConfidenceBadge.jsx';
 import { MAX_SYMPTOM_BURDEN as MAX_BURDEN, MIN_NIGHTS_FOR_INSIGHT } from '../../lib/constants.js';
 
@@ -47,43 +48,60 @@ export function PredictionCard({ forecast, compact = false }) {
   const [low, high] = interval;
 
   return (
-    <Card title="Tomorrow's outlook">
+    <Card title="Tomorrow's outlook" variant={compact ? undefined : 'feature'}>
+      {/* Only on the full Insights card. The compact form sits on the dashboard
+          beside a card that already carries a decorative Lumi, and two of them
+          in one column is clutter. */}
+      {!compact && <Lumi size={180} state="thinking" className="lumi-deco lumi-deco--br" />}
       <div className="stack">
         <div className="row row--between" style={{ alignItems: 'flex-start' }}>
           <div className="stack stack--tight">
-            <span className="text-muted text-xs">Estimated symptom burden</span>
+            <span className="stat__label">Estimated symptom burden</span>
             <div className="row" style={{ alignItems: 'baseline', gap: 'var(--space-2)' }}>
               <strong className="display-number">
                 {low}-{high}
               </strong>
               <span className="text-muted text-sm">of {MAX_BURDEN}</span>
             </div>
-            <span className="text-muted text-xs">
+            <span className="text-sm text-muted">
               Most likely around {predictedBurden} - {bandFor(predictedBurden)} for you.
             </span>
           </div>
           <ConfidenceBadge confidence={confidence} nDays={nDays} />
         </div>
 
-        {confidence === 'low' && (
-          <p className="insight-caveat text-xs">
-            This is an early estimate from a small number of nights. Treat it as a
-            rough signal, not a forecast.
-          </p>
-        )}
-
         {!compact && drivers?.length > 0 && (
           <div className="stack stack--tight">
-            <span className="text-muted text-xs">What's driving this</span>
+            <span className="stat__label">What's driving this</span>
             <ul className="driver-list">
               {drivers.map((driver) => (
                 <li key={driver.feature} className="driver">
                   <span className={`driver__arrow driver__arrow--${driver.direction}`} aria-hidden="true">
                     {driver.direction === 'increases' ? '↑' : '↓'}
                   </span>
-                  <span>
+                  <span className="driver__text">
                     Your recent <strong>{driver.label}</strong>{' '}
                     {driver.direction === 'increases' ? 'pushes this up' : 'pulls this down'}
+                    {/* Relative magnitude, which the model has always sent and
+                        the card used to drop. Drivers arrive ranked, so scaling
+                        against the strongest shows how much of the story the
+                        second and third actually account for - "these three
+                        matter" and "one of these matters" look identical
+                        without it. Decorative only: the sentence above already
+                        carries the meaning. */}
+                    {Number.isFinite(driver.weight) && drivers[0]?.weight > 0 && (
+                      <span className="driver__weight" aria-hidden="true">
+                        <span
+                          className={`driver__weight-fill driver__weight-fill--${driver.direction}`}
+                          style={{
+                            width: `${Math.max(
+                              8,
+                              Math.round((driver.weight / drivers[0].weight) * 100),
+                            )}%`,
+                          }}
+                        />
+                      </span>
+                    )}
                   </span>
                 </li>
               ))}
@@ -91,16 +109,13 @@ export function PredictionCard({ forecast, compact = false }) {
           </div>
         )}
 
-        <p className="text-muted text-xs">
-          Based on patterns in your own check-ins. This is an estimate of how you
-          may feel, not a medical prediction.
-          {compact && (
-            <>
-              {' '}
-              <Link to="/insights">See what's driving this</Link>
-            </>
-          )}
-        </p>
+        {compact && (
+          <div>
+            <Link to="/insights" className="btn btn--secondary">
+              See what's driving this
+            </Link>
+          </div>
+        )}
       </div>
     </Card>
   );

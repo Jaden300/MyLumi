@@ -163,6 +163,9 @@ describe('fetchInsights shape validation', () => {
       forecast: { available: true, nDays: 20, predictedBurden: 22.5, interval: [19, 26] },
       correlation: { available: false, findings: [] },
       anomaly: { available: true, anomalies: [] },
+      symptoms: { available: true, rates: [], shifts: [] },
+      validation: { available: true, folds: 12, modelError: 3.1 },
+      recoveryState: { available: true, points: [] },
     };
     stubFetch(() => Promise.resolve(jsonResponse(body)));
     const { fetchInsights } = await loadApi();
@@ -170,6 +173,51 @@ describe('fetchInsights shape validation', () => {
 
     expect(result.offline).toBe(false);
     expect(result.forecast.predictedBurden).toBe(22.5);
+    expect(result.validation.modelError).toBe(3.1);
+  });
+
+  /* A frontend deployed ahead of its backend is an ordering mistake, not an
+     outage. The three original sections are what make a response a response;
+     anything newer that is missing degrades on its own rather than blanking
+     every card on the page. */
+  it('keeps working against a backend that predates the newer models', async () => {
+    const body = {
+      forecast: { available: true, nDays: 20, predictedBurden: 22.5, interval: [19, 26] },
+      correlation: { available: true, findings: [] },
+      anomaly: { available: true, anomalies: [] },
+    };
+    stubFetch(() => Promise.resolve(jsonResponse(body)));
+    const { fetchInsights } = await loadApi();
+    const result = await fetchInsights([]);
+
+    expect(result.offline).toBe(false);
+    expect(result.forecast.available).toBe(true);
+
+    for (const section of [result.symptoms, result.validation, result.recoveryState]) {
+      expect(section).toBeTypeOf('object');
+      expect(section.available).toBe(false);
+      expect(section.reason).toBeTruthy();
+    }
+  });
+
+  it('gives every section a safe shape on transport failure', async () => {
+    stubFetch(() => Promise.reject(new TypeError('Failed to fetch')));
+    const { fetchInsights } = await loadApi();
+    const result = await fetchInsights([]);
+
+    const sections = [
+      'forecast',
+      'correlation',
+      'anomaly',
+      'symptoms',
+      'validation',
+      'recoveryState',
+    ];
+    for (const key of sections) {
+      expect(result[key], key).toBeTypeOf('object');
+      expect(result[key].available, key).toBe(false);
+      expect(result[key].reason, key).toBeTruthy();
+    }
   });
 });
 

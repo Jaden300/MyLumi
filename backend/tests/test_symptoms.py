@@ -72,29 +72,119 @@ def test_every_rate_reports_an_interval_containing_its_slope():
         assert rate["status"] in ("easing", "worsening", "unclear")
 
 
-def test_a_decided_direction_always_has_an_interval_clear_of_zero():
-    """The refusal mechanism: no direction unless the CI excludes zero."""
+def test_a_decided_direction_never_has_an_interval_straddling_zero():
+    """The refusal mechanism.
+
+    "Straddling" rather than "excluding": these are integer 0-6 ratings, so
+    Theil-Sen's interval is built from a discrete set of pairwise slopes and its
+    bound frequently lands exactly ON zero. Requiring strict exclusion threw
+    away findings that were significant at p < 0.01 - the honest test is that
+    the interval does not point both ways at once.
+    """
     for seed in range(4):
         for rate in recovery_rates(to_episodes(make_rows(30, seed=seed))):
+            if rate["status"] in ("easing", "worsening"):
+                assert not (rate["ciLow"] < 0 < rate["ciHigh"]), rate
             if rate["status"] == "easing":
-                assert rate["ciHigh"] < 0, rate
+                assert rate["weeklyChange"] < 0, rate
             elif rate["status"] == "worsening":
-                assert rate["ciLow"] > 0, rate
+                assert rate["weeklyChange"] > 0, rate
 
 
-def test_undifferentiated_symptoms_produce_no_finding():
-    """Symptoms that all move together are a real pattern, and the honest
-    answer is to say so rather than to manufacture a distinction."""
-    result = analyse(to_episodes(make_isotropic_rows(34)))
-    assert result["available"] is False
-    assert result["shifts"] == []
-    assert "moving together" in result["reason"]
+def test_a_strong_trend_is_not_discarded_on_an_interval_bound_of_zero():
+    """Regression: the card was nearly empty on the demo dataset.
+
+    All nine symptoms survived Holm at p < 0.01 with clearly negative slopes,
+    and eight were reported "not clear yet" - because Theil-Sen's upper bound
+    landed exactly on 0.0 on integer 0-6 data and the check required strict
+    exclusion of zero. Evidence that strong must not be thrown away by an
+    artefact of the rating scale.
+    """
+    rates = recovery_rates(to_episodes(make_rows(30, seed=1)))
+    decided = [r for r in rates if r["status"] != "unclear"]
+    assert len(decided) >= 2, [(r["label"], r["weeklyChange"], r["status"]) for r in rates]
+
+
+def test_false_positive_rate_stays_low_on_trendless_symptoms():
+    """The other side of the test above: loosening the bound must not open the
+    door to calling noise a trend."""
+    import numpy as np
+    from datetime import date, timedelta
+
+    from app.schemas import FeatureRow
+
+    calls = 0
+    runs = 10
+    for seed in range(runs):
+        rng = np.random.default_rng(seed)
+        rows = []
+        for i in range(30):
+            items = {f"symptom_{k}": float(rng.integers(0, 7)) for k in SYMPTOM_KEYS}
+            rows.append(
+                FeatureRow(
+                    nightOf=(date(2026, 1, 1) + timedelta(days=i)).isoformat(),
+                    symptomBurden=float(sum(items.values())),
+                    sleepDurationMinutes=float(rng.normal(420, 60)),
+                    sleepQuality=float(rng.integers(0, 7)),
+                    daysSinceInjury=i + 3,
+                    dstAffected=0,
+                    **items,
+                )
+            )
+        calls += sum(
+            1 for r in recovery_rates(to_episodes(rows)) if r["status"] != "unclear"
+        )
+
+    # 9 symptoms x 10 runs of pure noise. A handful is the cost of testing at
+    # all; a large fraction would mean the correction had stopped working.
+    assert calls <= 0.1 * runs * len(SYMPTOM_KEYS), calls
+
+
+def test_undifferentiated_symptoms_produce_no_composition_finding():
+    """Symptoms that all move together must not be given a distinction.
+
+    The isotropic fixture still carries the overall recovery downtrend, so
+    per-symptom RATES may legitimately fire - every symptom really is easing.
+    What must not appear is a composition shift, because there is no difference
+    in the SHAPE of the profile to find.
+    """
+    for seed in range(5):
+        result = analyse(to_episodes(make_isotropic_rows(34, seed=seed)))
+        assert result["shifts"] == [], result["shifts"]
 
 
 def test_no_data_and_no_pattern_are_different_answers():
-    """A user with 34 undifferentiated nights must not be told to log more."""
-    result = analyse(to_episodes(make_isotropic_rows(34)))
+    """A user with plenty of nights and no pattern must not be told to log more.
+
+    Constructed with genuinely trendless symptoms - no recovery trend at all -
+    so the model has nothing whatever to report and has to say which kind of
+    nothing it is.
+    """
+    import numpy as np
+    from datetime import date, timedelta
+
+    from app.schemas import FeatureRow
+
+    rng = np.random.default_rng(0)
+    rows = []
+    for i in range(30):
+        items = {f"symptom_{k}": float(rng.integers(0, 7)) for k in SYMPTOM_KEYS}
+        rows.append(
+            FeatureRow(
+                nightOf=(date(2026, 1, 1) + timedelta(days=i)).isoformat(),
+                symptomBurden=float(sum(items.values())),
+                sleepDurationMinutes=float(rng.normal(420, 60)),
+                sleepQuality=float(rng.integers(0, 7)),
+                daysSinceInjury=i + 3,
+                dstAffected=0,
+                **items,
+            )
+        )
+
+    result = analyse(to_episodes(rows))
+    assert result["available"] is False
     assert "more nights" not in result["reason"]
+    assert "moving together" in result["reason"]
 
 
 def test_flat_and_sparse_data_never_crash_or_fabricate():

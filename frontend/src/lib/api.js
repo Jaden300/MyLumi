@@ -88,12 +88,27 @@ export function pingHealth() {
  * Returns the three sections in server shape, with an offline envelope
  * substituted on failure so callers never branch on transport errors.
  */
+/* Every section the UI expects. A response missing one of these is not
+   necessarily broken - it may be an older backend that predates the model - so
+   each is filled in individually rather than failing the whole envelope. */
+const INSIGHT_SECTIONS = [
+  'forecast',
+  'correlation',
+  'anomaly',
+  'symptoms',
+  'validation',
+  'recoveryState',
+];
+
+/* The sections that must be present for the response to count as a response at
+   all. These three predate the rest; if they are missing, something is wrong
+   with the service rather than with its version. */
+const CORE_SECTIONS = ['forecast', 'correlation', 'anomaly'];
+
 export async function fetchInsights(rows, daysSinceInjury = null) {
   const result = await post('/v1/insights', { rows, daysSinceInjury });
   const offlineEnvelope = (reason) => ({
-    forecast: offline(reason),
-    correlation: offline(reason),
-    anomaly: offline(reason),
+    ...Object.fromEntries(INSIGHT_SECTIONS.map((key) => [key, offline(reason)])),
     offline: true,
   });
 
@@ -111,10 +126,21 @@ export async function fetchInsights(rows, daysSinceInjury = null) {
      directly, so an absent section took down the whole dashboard through the
      error boundary. Treating a wrong shape as "service unavailable" is both true
      and the path the UI already knows how to render. */
-  if (!isSection(result.data?.forecast) || !isSection(result.data?.correlation) || !isSection(result.data?.anomaly)) {
+  if (!CORE_SECTIONS.every((key) => isSection(result.data?.[key]))) {
     return offlineEnvelope(OFFLINE_MESSAGE);
   }
-  return { ...result.data, offline: false };
+
+  /* Newer sections are filled in per-section rather than all-or-nothing. A
+     frontend deployed ahead of its backend would otherwise show NOTHING - every
+     card dark because one model the old service has never heard of is absent -
+     which turns an ordering mistake into a total outage. */
+  const sections = {};
+  for (const key of INSIGHT_SECTIONS) {
+    sections[key] = isSection(result.data[key])
+      ? result.data[key]
+      : offline(OFFLINE_MESSAGE);
+  }
+  return { ...result.data, ...sections, offline: false };
 }
 
 /**

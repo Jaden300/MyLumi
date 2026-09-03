@@ -231,9 +231,26 @@ def recovery_rates(episodes: list[Episode]) -> list[dict]:
             continue
 
         weekly = float(slope) * 7.0
-        # A direction is only claimed when the interval excludes zero AND the
-        # symptom survived correction for testing all nine at once.
-        decided = key in surviving and lo * hi > 0 and abs(weekly) >= MIN_WEEKLY_SLOPE
+        # A direction needs two things: the symptom survived correction for
+        # testing all nine at once, and its interval does not straddle zero.
+        #
+        # "Does not straddle" rather than "strictly excludes". These are integer
+        # 0-6 ratings, so Theil-Sen's interval is built from a discrete set of
+        # pairwise slopes and its bound very often lands exactly ON zero - the
+        # demo dataset had all nine symptoms at p < 0.01 with clearly negative
+        # slopes, and eight of them reported as "not clear yet" purely because a
+        # bound was 0.0 rather than -0.01. That is an artefact of the
+        # measurement scale, not evidence of uncertainty, and discarding a
+        # Holm-surviving result on it throws away the strongest finding the card
+        # has. A bound that straddles zero (one end positive, the other
+        # negative) still refuses, which is the case that genuinely means "we
+        # cannot tell which way".
+        straddles_zero = lo < 0 < hi
+        decided = (
+            key in surviving
+            and not straddles_zero
+            and abs(weekly) >= MIN_WEEKLY_SLOPE
+        )
         if not decided:
             status = "unclear"
         else:

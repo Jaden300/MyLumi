@@ -113,6 +113,51 @@ def test_names_a_strong_trend_when_there_is_one():
     assert named >= 4, f"only named a strong downward trend {named}/6 times"
 
 
+def test_observation_noise_is_not_inflated_by_the_trend():
+    """Regression, and the reason the model once refused to name a clear trend.
+
+    Observation noise was estimated from night-to-night differences, which
+    double-counts a series that swings up and back down - which self-reports do
+    constantly. On the demo dataset that came out 2.2x the true residual spread.
+    Because the slope's error bars derive from this number, over-estimating it
+    made the model report a clear six points a week of recovery as "steady": a
+    false negative on the most visible screen in the app.
+
+    The estimate must track the noise actually planted, and must not grow just
+    because the series has a trend running through it.
+    """
+    for true_slope in (0.0, -0.4, -0.8):
+        for planted_noise in (2.0, 4.0):
+            result = recovery_state(
+                to_episodes(
+                    make_recovery_rows(
+                        30, true_slope=true_slope, obs_noise=planted_noise, seed=4
+                    )
+                )
+            )
+            estimated = result["observationNoise"]
+            assert estimated < planted_noise * 2.0, (
+                true_slope,
+                planted_noise,
+                estimated,
+            )
+
+
+def test_a_steep_recovery_is_named_rather_than_called_steady():
+    """A burden falling by well over five points a week is not ambiguous."""
+    named = sum(
+        1
+        for seed in range(8)
+        if recovery_state(
+            to_episodes(
+                make_recovery_rows(30, true_slope=-0.9, obs_noise=3.0, seed=seed)
+            )
+        )["direction"]
+        == "improving"
+    )
+    assert named >= 6, f"named a steep recovery only {named}/8 times"
+
+
 def test_a_named_direction_always_agrees_with_its_slope():
     for seed in range(8):
         for slope in (-0.8, -0.3, 0.0, 0.6):
