@@ -17,6 +17,39 @@ import numpy as np
 
 MAX_SYMPTOM_BURDEN = 54
 
+# The 9 PCSS items, in check-in order. Mirrors SYMPTOM_KEYS in the frontend's
+# constants.js. These arrive on every FeatureRow as symptom_<key> and, until
+# now, were parsed and thrown away - no model read them. Everything in
+# symptoms.py is built on them.
+SYMPTOM_KEYS = [
+    "headache",
+    "photophobia",
+    "phonophobia",
+    "brainFog",
+    "nausea",
+    "dizziness",
+    "fatigue",
+    "moodDisturbance",
+    "concentration",
+]
+
+# The key each symptom takes inside Episode.values, kept distinct from the bare
+# symptom name so a symptom can never collide with a sleep feature.
+SYMPTOM_VALUE_KEYS = [f"symptom_{key}" for key in SYMPTOM_KEYS]
+
+# Plain language for each item, matching the labels the frontend already shows.
+SYMPTOM_LABELS = {
+    "headache": "headache",
+    "photophobia": "light sensitivity",
+    "phonophobia": "noise sensitivity",
+    "brainFog": "brain fog",
+    "nausea": "nausea",
+    "dizziness": "dizziness",
+    "fatigue": "fatigue",
+    "moodDisturbance": "irritability or low mood",
+    "concentration": "trouble concentrating",
+}
+
 # Feature key -> the label a human sees. Keeping the mapping here means a driver
 # or a finding can be phrased in plain language without the model files each
 # inventing their own wording.
@@ -87,6 +120,10 @@ def to_episodes(rows) -> list[Episode]:
             "symptomBurden": _f(row.symptomBurden),
             "daysSinceInjury": _f(row.daysSinceInjury),
         }
+        # The 9 PCSS items. Copied through the same _f() as everything else, so
+        # an unanswered item stays None rather than becoming a confident 0.
+        for key in SYMPTOM_KEYS:
+            values[f"symptom_{key}"] = _f(getattr(row, f"symptom_{key}", None))
         episodes.append(
             Episode(
                 nightOf=row.nightOf,
@@ -168,6 +205,35 @@ def paired_series(
         xs.append(x)
         ys.append(y)
     return np.asarray(xs, dtype=float), np.asarray(ys, dtype=float)
+
+
+def symptom_matrix(
+    episodes: list[Episode], drop_dst: bool = False
+) -> tuple[list[str], np.ndarray]:
+    """(nights, n x 9 matrix) for episodes carrying ALL 9 PCSS items.
+
+    All-or-nothing by design, matching `computeSymptomBurden` in the frontend:
+    a night missing even one item is dropped rather than contributing a partial
+    profile. A partial vector would distort a PCA loading and understate one
+    symptom's share of the night's total, which is the same fabricated-zero
+    failure this project refuses everywhere else.
+
+    DST is NOT dropped here by default: these models look at symptom
+    composition, which a wrong sleep duration does not corrupt.
+    """
+    nights, rows = [], []
+    for ep in episodes:
+        if drop_dst and ep.dstAffected:
+            continue
+        row = [ep.get(k) for k in SYMPTOM_VALUE_KEYS]
+        if any(v is None for v in row):
+            continue
+        nights.append(ep.nightOf)
+        rows.append(row)
+
+    if not rows:
+        return [], np.empty((0, len(SYMPTOM_KEYS)))
+    return nights, np.asarray(rows, dtype=float)
 
 
 def burden_series(episodes: list[Episode]) -> tuple[list[str], np.ndarray]:

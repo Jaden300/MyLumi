@@ -171,9 +171,79 @@ class NlpResponse(Envelope):
     meanSentiment: Optional[float] = None
 
 
+class SymptomShift(BaseModel):
+    """How one symptom's SHARE of the total burden changes after short sleep."""
+
+    key: str
+    label: str
+    shiftPoints: float  # percentage points of the night's total
+    direction: Literal["larger", "smaller"]
+    pValue: float
+    n: int
+    statement: str
+
+
+class SymptomRate(BaseModel):
+    """One symptom's trend over time, with the interval that decided it."""
+
+    key: str
+    label: str
+    weeklyChange: float
+    ciLow: float
+    ciHigh: float
+    status: Literal["easing", "worsening", "unclear"]
+    laggard: bool = False
+    n: int
+
+
+class SymptomsResponse(Envelope):
+    shifts: list[SymptomShift] = Field(default_factory=list)
+    rates: list[SymptomRate] = Field(default_factory=list)
+    summary: Optional[str] = None
+
+
+class ValidationResponse(Envelope):
+    """How the forecast scored against its own history. May be bad news."""
+
+    folds: int = 0
+    modelError: Optional[float] = None
+    naiveError: Optional[float] = None
+    skillScore: Optional[float] = None
+    beatsNaive: Optional[bool] = None
+    coverage: Optional[float] = None
+    targetCoverage: float = 0.8
+    statement: Optional[str] = None
+
+
+class StatePoint(BaseModel):
+    """One night: what was reported, and the estimated level behind it."""
+
+    nightOf: str
+    observed: float
+    level: float
+    lower: float
+    upper: float
+
+
+class RecoveryStateResponse(Envelope):
+    points: list[StatePoint] = Field(default_factory=list)
+    slopePerDay: Optional[float] = None
+    direction: Optional[Literal["improving", "steady", "worsening"]] = None
+    observationNoise: Optional[float] = None
+    statement: Optional[str] = None
+    maxBurden: int = 54
+
+
 class InsightsResponse(BaseModel):
-    """Batched - one call so a cold free-tier service is woken once, not four times."""
+    """Batched - one call so a cold free-tier service is woken once per view.
+
+    Six models now share the request. Each is computed defensively in the router
+    so one failing model cannot take the other five down with it.
+    """
 
     forecast: ForecastResponse
     correlation: CorrelationResponse
     anomaly: AnomalyResponse
+    symptoms: SymptomsResponse
+    validation: ValidationResponse
+    recoveryState: RecoveryStateResponse

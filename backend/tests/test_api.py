@@ -26,15 +26,61 @@ def test_root_advertises_statelessness():
     assert body["storesData"] is False
 
 
-def test_insights_batches_all_three_models():
+def test_insights_batches_every_model():
+    """One request, every numeric model - so a cold instance wakes once.
+
+    Asserting the exact set rather than a subset on purpose: a section silently
+    disappearing from this response is a frontend outage, because the UI reads
+    each one directly.
+    """
     response = client.post("/v1/insights", json=payload())
     assert response.status_code == 200
     body = response.json()
-    assert set(body) == {"forecast", "correlation", "anomaly"}
+    assert set(body) == {
+        "forecast",
+        "correlation",
+        "anomaly",
+        "symptoms",
+        "validation",
+        "recoveryState",
+    }
     assert body["forecast"]["available"] is True
 
 
-@pytest.mark.parametrize("path", ["/v1/forecast", "/v1/correlation", "/v1/anomaly"])
+def test_every_section_carries_the_standard_envelope():
+    """The UI branches on these four keys for every card it renders."""
+    body = client.post("/v1/insights", json=payload()).json()
+    for name, section in body.items():
+        for key in ("available", "reason", "confidence", "nDays"):
+            assert key in section, f"{name} is missing {key}"
+
+
+def test_one_failing_model_never_takes_down_the_others(monkeypatch):
+    """Six models in one response is six chances to lose all six.
+
+    A model that raises must degrade to its own unavailable envelope, not a 500
+    that blanks every card on the screen.
+    """
+    from app.routers import insights as insights_router
+
+    def explode(*_args, **_kwargs):
+        raise RuntimeError("model blew up")
+
+    monkeypatch.setattr(insights_router.symptoms_model, "analyse", explode)
+
+    response = client.post("/v1/insights", json=payload())
+    assert response.status_code == 200
+    body = response.json()
+    assert body["symptoms"]["available"] is False
+    assert body["symptoms"]["reason"]
+    # The rest still answered.
+    assert body["forecast"]["available"] is True
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["/v1/forecast", "/v1/correlation", "/v1/anomaly", "/v1/symptoms", "/v1/validation"],
+)
 def test_individual_endpoints_match_the_batched_call(path):
     single = client.post(path, json=payload()).json()
     batched = client.post("/v1/insights", json=payload()).json()[path.rsplit("/", 1)[1]]
@@ -42,7 +88,16 @@ def test_individual_endpoints_match_the_batched_call(path):
 
 
 @pytest.mark.parametrize(
-    "path", ["/v1/insights", "/v1/forecast", "/v1/correlation", "/v1/anomaly"]
+    "path",
+    [
+        "/v1/insights",
+        "/v1/forecast",
+        "/v1/correlation",
+        "/v1/anomaly",
+        "/v1/symptoms",
+        "/v1/validation",
+        "/v1/state",
+    ],
 )
 def test_empty_and_minimal_payloads_never_500(path):
     for body in ({"rows": []}, {"rows": [{"nightOf": "2026-01-01"}]}, {}):

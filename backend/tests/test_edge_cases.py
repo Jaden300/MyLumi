@@ -15,7 +15,15 @@ from app.main import app
 
 client = TestClient(app)
 
-ENDPOINTS = ["/v1/insights", "/v1/forecast", "/v1/correlation", "/v1/anomaly"]
+ENDPOINTS = [
+    "/v1/insights",
+    "/v1/forecast",
+    "/v1/correlation",
+    "/v1/anomaly",
+    "/v1/symptoms",
+    "/v1/validation",
+    "/v1/state",
+]
 
 
 def row(i, burden=20.0, sleep=420.0):

@@ -19,11 +19,11 @@ from typing import Optional
 import numpy as np
 
 from .confidence import (
-    INTERVAL_WIDENING,
     MIN_FOR_ANY_INSIGHT,
     has_enough,
     insufficient_reason,
     tier_for,
+    widening_for,
 )
 from .features import FEATURE_LABELS, Episode, build_matrix, complete_count
 
@@ -106,8 +106,17 @@ def _select_features(episodes: list[Episode]) -> tuple[list[str], np.ndarray, np
     return best
 
 
-def forecast(episodes: list[Episode]) -> dict:
-    """Predict the next episode's symptom burden, with drivers and an interval."""
+def forecast(
+    episodes: list[Episode], interval_half_width: Optional[float] = None
+) -> dict:
+    """Predict the next episode's symptom burden, with drivers and an interval.
+
+    `interval_half_width`, when given, is a conformal half-width measured from
+    this model's own out-of-sample errors (see models/validation.py). It is
+    passed in rather than computed here because validation.py fits this model to
+    produce it, and importing it back would be circular. The caller that has
+    both - routers/insights.py - wires them together.
+    """
     n_complete = complete_count(episodes)
     tier = tier_for(n_complete)
 
@@ -182,17 +191,29 @@ def forecast(episodes: list[Episode]) -> dict:
     prediction = float(y_mean + latest_scaled @ coefs)
     prediction = float(np.clip(prediction, 0.0, MAX_BURDEN))
 
-    # Interval from in-sample residual spread, widened per tier. In-sample
-    # residuals understate real error, which is exactly why INTERVAL_WIDENING
-    # exists rather than a bare 1.0 multiplier.
-    fitted = y_mean + (x - mu) / sigma @ coefs
-    residuals = y - fitted
-    dof = max(1, len(y) - len(keys) - 1)
-    spread = float(np.sqrt(np.sum(residuals**2) / dof))
-    # A perfectly flat history yields zero residuals and would collapse the
-    # interval to a point - a +/-0 band claims certainty no 7-night personal
-    # model has. Floor it so the interval always carries visible uncertainty.
-    half = max(INTERVAL_WIDENING[fit_tier] * spread, MIN_INTERVAL_HALF_WIDTH)
+    # Interval. Two sources, in order of preference.
+    #
+    # PREFERRED: a conformal half-width computed from the model's own
+    # one-step-ahead errors on this user's history, passed in by the caller.
+    # That is an out-of-sample quantity and it is what makes the band mean what
+    # it says.
+    #
+    # FALLBACK: in-sample residual spread widened per tier, used when there is
+    # not enough history to conformalise. It is kept because "no interval" is
+    # not an option once a number is being shown, but it is measurably
+    # optimistic - simulation put the `good` tier's nominal ~80% band at about
+    # 51% real coverage - so the conformal path is used whenever it exists.
+    if interval_half_width is not None and np.isfinite(interval_half_width):
+        half = max(float(interval_half_width), MIN_INTERVAL_HALF_WIDTH)
+    else:
+        fitted = y_mean + (x - mu) / sigma @ coefs
+        residuals = y - fitted
+        dof = max(1, len(y) - len(keys) - 1)
+        spread = float(np.sqrt(np.sum(residuals**2) / dof))
+        # A perfectly flat history yields zero residuals and would collapse the
+        # interval to a point - a +/-0 band claims certainty no 7-night personal
+        # model has. Floor it so the interval always carries visible uncertainty.
+        half = max(widening_for(fit_tier) * spread, MIN_INTERVAL_HALF_WIDTH)
     interval = [
         round(float(max(0.0, prediction - half)), 1),
         round(float(min(MAX_BURDEN, prediction + half)), 1),

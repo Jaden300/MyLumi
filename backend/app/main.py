@@ -23,7 +23,17 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import anomaly, correlation, forecast, health, insights, nlp
+from .routers import (
+    anomaly,
+    correlation,
+    forecast,
+    health,
+    insights,
+    nlp,
+    state,
+    symptoms,
+    validation,
+)
 
 app = FastAPI(
     title="MyLumi Inference API",
@@ -58,6 +68,9 @@ app.include_router(insights.router)
 app.include_router(forecast.router)
 app.include_router(correlation.router)
 app.include_router(anomaly.router)
+app.include_router(symptoms.router)
+app.include_router(validation.router)
+app.include_router(state.router)
 app.include_router(nlp.router)
 
 
