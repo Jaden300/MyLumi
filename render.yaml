@@ -1,5 +1,12 @@
-# Render blueprint. One stateless Python web service - no database, by design.
-# See app/main.py for why there is nothing to persist.
+# Render blueprint. Both halves of MyLumi, one apply.
+#
+#   mylumi-api  - stateless FastAPI inference. No database, by design;
+#                 see app/main.py for why there is nothing to persist.
+#   mylumi-web  - the Vite build, served as static files.
+#
+# This file lives at the repo ROOT, not in backend/, because that is where
+# Render's blueprint auto-discovery looks. Each service builds from its own
+# subdirectory via rootDir.
 services:
   - type: web
     name: mylumi-api
@@ -17,3 +24,40 @@ services:
       # Set this to the deployed frontend URL in the Render dashboard.
       - key: FRONTEND_ORIGINS
         sync: false
+
+  # Static files on a CDN - no server, so this one never sleeps. Only the API
+  # above has a cold start (see docs/stack.md).
+  - type: web
+    name: mylumi-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      # Baked into the bundle at BUILD time, not read at runtime - changing it
+      # requires a redeploy, not a restart. Set to the mylumi-api URL.
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      # Client-side routing: every path that is not a real file serves the app
+      # shell, so a refresh on /journal does not 404.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      # A journalling app for concussion recovery has no business being
+      # embedded in someone else's page, and no business leaking the URLs it
+      # was reached from.
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      # Vite fingerprints these filenames, so a stale copy is impossible.
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

@@ -141,28 +141,33 @@ silently degrade into one where MyLumi's headline feature finds nothing.
 
 ## Deployment status
 
-`render.yaml` in the **repository root** defines the service (free tier, health
-check at `/health`). It has to live at the root - that is where Render looks for
-a Blueprint - and it points at `backend/` via `rootDir`.
+`render.yaml` in the **repository root** defines both services - `mylumi-api`
+(FastAPI, free tier, health check at `/health`) and `mylumi-web` (the Vite build
+as a static site). It has to live at the root - that is where Render looks for a
+Blueprint - and each service points at its own subdirectory via `rootDir`.
 
 **It is not yet deployed** - that needs an account action. In order:
 
-1. Create the Blueprint from the root `render.yaml`.
-2. **Set `FRONTEND_ORIGINS`** on the service to the deployed frontend URL, comma
+1. Create the Blueprint from the root `render.yaml`. Both services come up.
+2. Set **`VITE_API_URL`** on `mylumi-web` to the `mylumi-api` URL, then redeploy
+   it. Vite inlines this at build time, so setting it without a rebuild changes
+   nothing.
+3. **Set `FRONTEND_ORIGINS`** on `mylumi-api` to the `mylumi-web` URL, comma
    separated for more than one. It is `sync: false`, so it starts unset - and
    CORS is a strict allowlist, so until it is set every insights call is
    rejected by the browser and the app shows only the generic "can't reach the
    model service" message. This is the single easiest way to arrive at a demo
    with a backend that is up and an app that looks broken.
-3. Set `VITE_API_URL` for the frontend build (see `frontend/.env.example`).
-4. Record the URL in `docs/stack.md`.
+4. Record both URLs in `docs/stack.md`.
 
-Note the service pins Python 3.11 while local development may be on 3.10; run
-the backend suite under 3.11 before relying on a green local run.
+Note the API pins Python 3.11 while local development may be on 3.10; run the
+backend suite under 3.11 before relying on a green local run.
 
-The free tier sleeps after ~15 minutes and takes ~50s to wake, so the frontend
-pings `/health` on mount and shows honest "waking up the model service" copy
-rather than a spinner that looks broken.
+The static site never sleeps, so the app itself always loads instantly. The API
+does sleep after ~15 minutes and takes ~50s to wake, so the frontend pings
+`/health` on mount and shows honest "waking up the model service" copy rather
+than a spinner that looks broken. During the event, an external cron job
+(cron-job.org) hits `/health` every 10 minutes so it never sleeps at all.
 
 ---
 
@@ -171,7 +176,7 @@ rather than a spinner that looks broken.
 | Track | Where to look |
 |---|---|
 | Responsible AI | `docs/responsible-ai.md`; the Your data page; the 7-night refusal |
-| Best Use of Render | `backend/` - real inference, stateless, no database |
+| Best Use of Render | `render.yaml` - both services, one blueprint; real inference, stateless, no database |
 | Best Use of AI/ML | Ridge forecast, Spearman + Holm correlation, MAD anomaly, lexicon NLP |
 | Mental Health | Mood VAS, irritability and brain-fog tracking, journal sentiment |
 | Physical Health | 9 PCSS items, sleep duration and quality, awakenings |
