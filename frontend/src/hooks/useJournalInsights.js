@@ -40,7 +40,11 @@ export function useJournalInsights() {
   const consentRef = useRef(consented);
   consentRef.current = consented;
 
+  // Monotonic request id; see load() for the revoke-then-regrant race.
+  const generation = useRef(0);
+
   const load = useCallback(async (payload) => {
+    const id = (generation.current += 1);
     setState((s) => ({ ...s, loading: true }));
     const sentiment = await analyseJournal(payload);
     /* Consent revoked while the request was in flight: drop the result, but
@@ -51,6 +55,10 @@ export function useJournalInsights() {
       setState({ loading: false, sentiment: null });
       return;
     }
+    /* A revoke-then-regrant leaves two requests racing. Without an ordering
+       guard the older one can land last and be displayed as current - showing
+       sentiment computed from text the user has since edited. */
+    if (id !== generation.current) return;
     setState({ loading: false, sentiment });
   }, []);
 

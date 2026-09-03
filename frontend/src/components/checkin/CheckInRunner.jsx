@@ -29,7 +29,7 @@ export function CheckInRunner({ flow, nightOf, onComplete, onCancel }) {
     discardDraft,
   } = useCheckInFlow(flow, nightOf, { onComplete });
 
-  const StepComponent = stepRegistry[step.component];
+  const StepComponent = stepRegistry[step?.component];
 
   /* Lumi follows the flow rather than sitting on one face throughout: settling
      down for the night check-in, waking for the morning one, reading alongside
@@ -37,7 +37,7 @@ export function CheckInRunner({ flow, nightOf, onComplete, onCancel }) {
      only thing left to do. */
   const lumiState = isLast
     ? 'encouraging'
-    : step.component === 'JournalStep'
+    : step?.component === 'JournalStep'
       ? 'reading'
       : flow.kind === 'morning'
         ? 'waking'
@@ -108,7 +108,7 @@ export function CheckInRunner({ flow, nightOf, onComplete, onCancel }) {
         aria-label={`Step ${stepIndex + 1} of ${stepCount}`}
       >
         {StepComponent ? (
-          <StepComponent {...(step.props ?? {})} values={values} setValue={setValue} />
+          <StepComponent {...(step?.props ?? {})} values={values} setValue={setValue} />
         ) : (
           <Banner tone="alert" role="alert">
             This step is unavailable.

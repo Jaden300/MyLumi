@@ -18,7 +18,7 @@ import {
   getLocalTimezone,
   daysBetween,
 } from './dates.js';
-import { MAX_JOURNAL_CHARS, MOOD_VAS_MIN, MOOD_VAS_MAX, STRESS_MIN, STRESS_MAX } from './constants.js';
+import { MAX_JOURNAL_CHARS, MOOD_VAS_MIN, MOOD_VAS_MAX, STRESS_MIN, STRESS_MAX, ROLLOVER_HOUR } from './constants.js';
 
 /** Set when a corrupt blob was quarantined, so the UI can explain the reset. */
 let recoveryNotice = null;
@@ -197,8 +197,15 @@ export function getCheckInStatus(data, now = new Date()) {
   const morningDue = Boolean(prev?.night) && !morningDone;
   const nightDue = !nightDone;
 
+  /* The morning check-in leads only during an actual morning: from the rollover
+     hour until noon. The lower bound matters - before 4am the user is still
+     inside the previous night, and prompting "how did you sleep?" at 3am asks
+     about sleep that has not finished yet. */
+  const rolloverHour = rollover ?? ROLLOVER_HOUR;
+  const isMorningWindow = hour >= rolloverHour && hour < 12;
+
   let primary = 'none';
-  if (morningDue && hour < 12) primary = 'morning';
+  if (morningDue && isMorningWindow) primary = 'morning';
   else if (nightDue) primary = 'night';
   else if (morningDue) primary = 'morning';
 

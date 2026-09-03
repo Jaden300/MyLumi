@@ -96,6 +96,24 @@ describe('a full night-then-morning cycle', () => {
     expect(data.entries['2026-01-10'].night.localDate).toBe('2026-01-11');
   });
 
+  /* The morning prompt used a naive `hour < 12` window on top of a 4am-rollover
+     system, so between midnight and 4am it asked "how did you sleep?" about a
+     night the user had not finished sleeping. */
+  it('does not lead with the morning check-in before the rollover hour', () => {
+    let data = setProfile(loadData(EVENING), { injuryDate: '2026-01-01' }, EVENING);
+    data = saveNightCheckIn(data, '2026-01-10', nightValues(), { now: EVENING }).data;
+
+    // 3am on Jan 11: still inside the night of Jan 10, which is in progress.
+    const preRollover = getCheckInStatus(data, new Date(2026, 0, 11, 3, 0));
+    expect(preRollover.nightOf).toBe('2026-01-10');
+    expect(preRollover.primary).not.toBe('morning');
+
+    // 9am on Jan 11: a real morning, and the Jan 10 morning is genuinely due.
+    const morning = getCheckInStatus(data, new Date(2026, 0, 11, 9, 0));
+    expect(morning.morningTargetNightOf).toBe('2026-01-10');
+    expect(morning.primary).toBe('morning');
+  });
+
   it('refuses to silently overwrite a completed check-in', () => {
     let data = setProfile(loadData(EVENING), { injuryDate: '2026-01-01' }, EVENING);
     data = saveNightCheckIn(data, '2026-01-10', nightValues(), { now: EVENING }).data;

@@ -23,7 +23,7 @@ from typing import Optional
 
 import numpy as np
 
-from .confidence import tier_for
+from .confidence import MIN_FOR_ANY_INSIGHT, has_enough, tier_for
 
 # Weighted -3..+3, oriented to concussion recovery journalling. Deliberately
 # small and readable - the whole point is that a human can audit it.
@@ -117,6 +117,26 @@ def analyse(texts) -> dict:
             "reason": "No journal entries with enough text to analyse yet.",
             "confidence": "none",
             "nDays": 0,
+            "points": [],
+            "trend": None,
+            "meanSentiment": None,
+        }
+
+    # Same refusal the numeric models make, for the same reason. This was the one
+    # model that never checked, so a single entry produced a plotted sentiment
+    # score reported as `available: true` alongside `confidence: "none"` - an
+    # envelope that contradicts itself, since `none` is defined as "no number at
+    # all". A lexicon score off one entry is noise wearing a number's clothes.
+    if not has_enough(n):
+        missing = MIN_FOR_ANY_INSIGHT - n
+        entries = "entry" if missing == 1 else "entries"
+        return {
+            "available": False,
+            # Counts JOURNAL ENTRIES, not complete nights - reusing the numeric
+            # copy here would tell a user to log sleep to unlock a text feature.
+            "reason": f"{missing} more journal {entries} and MyLumi can look at how your writing is trending.",
+            "confidence": "none",
+            "nDays": n,
             "points": [],
             "trend": None,
             "meanSentiment": None,

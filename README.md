@@ -141,10 +141,24 @@ silently degrade into one where MyLumi's headline feature finds nothing.
 
 ## Deployment status
 
-`backend/render.yaml` defines the service (free tier, health check at `/health`).
-**It is not yet deployed** - that needs an account action. After deploying: set
-`FRONTEND_ORIGINS` on the service, set `VITE_API_URL` for the frontend build, and
-record the URL in `docs/stack.md`.
+`render.yaml` in the **repository root** defines the service (free tier, health
+check at `/health`). It has to live at the root - that is where Render looks for
+a Blueprint - and it points at `backend/` via `rootDir`.
+
+**It is not yet deployed** - that needs an account action. In order:
+
+1. Create the Blueprint from the root `render.yaml`.
+2. **Set `FRONTEND_ORIGINS`** on the service to the deployed frontend URL, comma
+   separated for more than one. It is `sync: false`, so it starts unset - and
+   CORS is a strict allowlist, so until it is set every insights call is
+   rejected by the browser and the app shows only the generic "can't reach the
+   model service" message. This is the single easiest way to arrive at a demo
+   with a backend that is up and an app that looks broken.
+3. Set `VITE_API_URL` for the frontend build (see `frontend/.env.example`).
+4. Record the URL in `docs/stack.md`.
+
+Note the service pins Python 3.11 while local development may be on 3.10; run
+the backend suite under 3.11 before relying on a green local run.
 
 The free tier sleeps after ~15 minutes and takes ~50s to wake, so the frontend
 pings `/health` on mount and shows honest "waking up the model service" copy

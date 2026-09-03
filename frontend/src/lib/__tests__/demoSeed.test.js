@@ -18,6 +18,8 @@ import { buildDemoData } from '../demoSeed.js';
 import { normalizeData } from '../schema.js';
 import { computeSymptomBurden, deriveSleepDuration, isDayComplete } from '../derive.js';
 import { SYMPTOM_KEYS, MAX_SYMPTOM_BURDEN } from '../constants.js';
+import { currentNightOf, prevDay } from '../dates.js';
+import { getCheckInStatus } from '../entries.js';
 
 const NOW = new Date('2026-06-15T09:00:00');
 
@@ -79,6 +81,22 @@ describe('buildDemoData', () => {
     const data = buildDemoData(NOW);
     expect(data.entries['2026-06-15']).toBeUndefined();
     expect(data.entries['2026-06-14']).toBeDefined();
+  });
+
+  /* Regression: the seed keyed off the calendar date rather than the current
+     night, so loading the demo between midnight and 4am filled in the night
+     still in progress and opened on the "all caught up" dead end this feature
+     exists to avoid. Demos do get run at 1am. */
+  it('leaves the current night unlogged at every hour, including before rollover', () => {
+    for (const [h, m] of [[9, 0], [21, 0], [1, 30], [3, 59], [4, 1], [23, 59]]) {
+      const now = new Date(2026, 5, 15, h, m);
+      const data = buildDemoData(now);
+      const tonight = currentNightOf(now);
+
+      expect(data.entries[tonight]).toBeUndefined();
+      expect(data.entries[prevDay(tonight)]).toBeDefined();
+      expect(getCheckInStatus(data, now).primary).toBe('night');
+    }
   });
 
   it('contains gaps, so missing-data handling is visible', () => {

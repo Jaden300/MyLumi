@@ -21,21 +21,31 @@ export function useCheckInFlow(flow, targetNightOf, { onComplete } = {}) {
   const [submitError, setSubmitError] = useState(null);
 
   const debounceRef = useRef(null);
+  // Synchronous double-submit guard; see submit() for why state is not enough.
+  const submittingRef = useRef(false);
   const latestRef = useRef({ values, stepIndex });
   latestRef.current = { values, stepIndex };
 
-  const writeDraft = useCallback(() => {
-    const { values: v, stepIndex: i } = latestRef.current;
-    saveDraft(flow.draftKey, {
-      schemaVersion: 1,
-      flowVersion: flow.version ?? 1,
-      kind: flow.kind,
-      nightOf: targetNightOf,
-      stepId: flow.steps[i]?.id ?? flow.steps[0].id,
-      values: v,
-      updatedAt: new Date().toISOString(),
-    });
-  }, [flow, targetNightOf]);
+  /* `stepIndexOverride` exists because `latestRef` is assigned during render,
+     while commitAndMove needs to persist the step it is moving TO before that
+     render has happened. Without it the draft recorded the step the user just
+     left, and a tab killed at the wrong moment restored them one screen back. */
+  const writeDraft = useCallback(
+    (stepIndexOverride) => {
+      const { values: v, stepIndex: i } = latestRef.current;
+      const index = typeof stepIndexOverride === 'number' ? stepIndexOverride : i;
+      saveDraft(flow.draftKey, {
+        schemaVersion: 1,
+        flowVersion: flow.version ?? 1,
+        kind: flow.kind,
+        nightOf: targetNightOf,
+        stepId: flow.steps[index]?.id ?? flow.steps[0].id,
+        values: v,
+        updatedAt: new Date().toISOString(),
+      });
+    },
+    [flow, targetNightOf],
+  );
 
   /* Restore on mount. Guarded on nightOf and flowVersion: a draft from a
      previous night must never resurface into tonight's record, and a draft made
@@ -95,7 +105,9 @@ export function useCheckInFlow(flow, targetNightOf, { onComplete } = {}) {
     (nextIndex) => {
       clearTimeout(debounceRef.current);
       setStepIndex(nextIndex);
-      queueMicrotask(writeDraft);
+      // Write the destination step explicitly: this runs before React commits
+      // the new index, so latestRef still holds the step being left.
+      writeDraft(nextIndex);
     },
     [writeDraft],
   );
@@ -121,20 +133,47 @@ export function useCheckInFlow(flow, targetNightOf, { onComplete } = {}) {
   }, [flow]);
 
   const submit = useCallback(() => {
-    if (!canAdvance || isSubmitting) return { ok: false, reason: 'invalid' };
+    /* The guard is a REF, not the isSubmitting state.
+       `flow.submit` is synchronous, so setIsSubmitting(true) and (false) land in
+       the same React batch and the state is never observably true. Two events
+       dispatched before the next render - Enter on a focused button plus the
+       click it also fires, or a fast double-tap - therefore both passed the
+       state check. The second call hit the no-silent-overwrite rule, came back
+       `already-exists`, and flashed "We couldn't save that" over a check-in that
+       had in fact saved. A ref updates synchronously, so the second caller sees
+       it immediately. */
+    if (!canAdvance || submittingRef.current) return { ok: false, reason: 'invalid' };
+    submittingRef.current = true;
     setIsSubmitting(true);
     setSubmitError(null);
-    const result = flow.submit(targetNightOf, values);
+
+    let result;
+    try {
+      result = flow.submit(targetNightOf, values);
+    } catch (error) {
+      submittingRef.current = false; // an exception is not a completed check-in
+      setIsSubmitting(false);
+      setSubmitError('unknown');
+      throw error;
+    }
+
     if (result.ok) {
       clearTimeout(debounceRef.current);
       clearDraft(flow.draftKey); // draft survives a FAILED submit on purpose
+      /* The guard stays LATCHED on success. Releasing it here would defeat the
+         whole point: `flow.submit` is synchronous, so a second click in the same
+         tick would find the ref already cleared. A completed check-in is
+         terminal - the caller navigates away or swaps in the report - and the
+         only way back is a fresh mount. */
       onComplete?.(result);
     } else {
+      // A real failure must stay retryable, so release the guard.
+      submittingRef.current = false;
       setSubmitError(result.reason ?? 'unknown');
     }
     setIsSubmitting(false);
     return result;
-  }, [canAdvance, isSubmitting, flow, targetNightOf, values, onComplete]);
+  }, [canAdvance, flow, targetNightOf, values, onComplete]);
 
   /* Progress is grouped by label, not step index: three symptom screens read as
      one "Symptoms" segment. "Step 3 of 6" when you've barely started is

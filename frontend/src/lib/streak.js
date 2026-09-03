@@ -9,13 +9,30 @@
 import { currentNightOf, prevDay, monthKey } from './dates.js';
 import { isDayComplete } from './derive.js';
 
-/** Rescued nights count toward the streak but hold no fabricated data. */
-export function wasRescued(nightOf, rescue) {
-  return Boolean(rescue?.usedOn && rescue.usedOn === nightOf);
+/**
+ * Rescued nights count toward the streak but hold no fabricated data.
+ *
+ * Reads the DURABLE `rescueHistory`, not `rescue.usedOn`. The two carry
+ * different lifetimes and conflating them cost a user their whole streak:
+ * `refreshRescue` resets the monthly ALLOWANCE (correctly, on the 1st), and an
+ * earlier version read `usedOn` off that same object - so the moment the
+ * calendar ticked over, the rescued night stopped counting and every night
+ * before it was amputated from the run.
+ *
+ * `rescueHistory` is the permanent record of which nights were rescued, is what
+ * `applyRescue` already writes, and is what the History page already reads. One
+ * source of truth means the streak and history can no longer disagree.
+ */
+export function wasRescued(nightOf, streakState) {
+  const history = streakState?.rescueHistory;
+  if (Array.isArray(history) && history.some((r) => r?.nightOf === nightOf)) return true;
+  // Fallback for a streak object mid-flight (applyRescue builds history and
+  // rescue together); harmless once history is written.
+  return Boolean(streakState?.rescue?.usedOn && streakState.rescue.usedOn === nightOf);
 }
 
-function countsToward(nightOf, entries, rescue) {
-  return isDayComplete(entries?.[nightOf]) || wasRescued(nightOf, rescue);
+function countsToward(nightOf, entries, streakState) {
+  return isDayComplete(entries?.[nightOf]) || wasRescued(nightOf, streakState);
 }
 
 /**
@@ -25,12 +42,12 @@ function countsToward(nightOf, entries, rescue) {
  * so counting it would show every user a broken streak all evening. The current
  * night is in a grace period, not a failure.
  */
-export function computeStreak(entries, now = new Date(), rescue = null, rolloverHour) {
+export function computeStreak(entries, now = new Date(), streakState = null, rolloverHour) {
   const endDate = prevDay(currentNightOf(now, rolloverHour));
   let count = 0;
   let cursor = endDate;
   // Bounded so a corrupt entries map can't spin forever.
-  while (count < 20000 && countsToward(cursor, entries, rescue)) {
+  while (count < 20000 && countsToward(cursor, entries, streakState)) {
     count += 1;
     cursor = prevDay(cursor);
   }
@@ -38,10 +55,10 @@ export function computeStreak(entries, now = new Date(), rescue = null, rollover
 }
 
 /** The most recent night that counted, or null. */
-export function lastCompletedNightOf(entries, now = new Date(), rescue = null, rolloverHour) {
+export function lastCompletedNightOf(entries, now = new Date(), streakState = null, rolloverHour) {
   let cursor = prevDay(currentNightOf(now, rolloverHour));
   for (let i = 0; i < 20000; i += 1) {
-    if (countsToward(cursor, entries, rescue)) return cursor;
+    if (countsToward(cursor, entries, streakState)) return cursor;
     if (!entries?.[cursor] && i > 400) return null; // far past any plausible history
     cursor = prevDay(cursor);
   }
@@ -81,7 +98,9 @@ export function getRescueOffer(entries, streakState, now = new Date(), rolloverH
   }
 
   // The run that last night interrupted - i.e. what is actually at stake.
-  const priorStreak = streakEndingBefore(entries, target, rescue);
+  // Passes the whole state so previously-rescued nights inside that run still
+  // count (see wasRescued).
+  const priorStreak = streakEndingBefore(entries, target, { ...streakState, rescue });
 
   if (priorStreak < MIN_STREAK_TO_RESCUE) {
     return { canRescue: false, reason: 'streak-too-short', rescue, nightOf: null };
@@ -90,10 +109,10 @@ export function getRescueOffer(entries, streakState, now = new Date(), rolloverH
 }
 
 /** Unbroken run ending the day before `nightOf`. */
-function streakEndingBefore(entries, nightOf, rescue) {
+function streakEndingBefore(entries, nightOf, streakState) {
   let count = 0;
   let cursor = prevDay(nightOf);
-  while (count < 20000 && countsToward(cursor, entries, rescue)) {
+  while (count < 20000 && countsToward(cursor, entries, streakState)) {
     count += 1;
     cursor = prevDay(cursor);
   }
@@ -131,12 +150,14 @@ export function applyRescue(streakState, entries, nightOf, now = new Date(), rol
 /** Recompute the cached streak fields from the authoritative entries map. */
 export function recomputeStreakState(streakState, entries, now = new Date(), rolloverHour) {
   const rescue = refreshRescue(streakState?.rescue, now, rolloverHour);
-  const current = computeStreak(entries, now, rescue, rolloverHour);
+  // The allowance may have just reset for a new month; the rescueHistory that
+  // records which nights were rescued carries over untouched.
+  const next = { ...streakState, rescue };
+  const current = computeStreak(entries, now, next, rolloverHour);
   return {
-    ...streakState,
-    rescue,
+    ...next,
     current,
     longest: Math.max(streakState?.longest ?? 0, current),
-    lastCompletedNightOf: lastCompletedNightOf(entries, now, rescue, rolloverHour),
+    lastCompletedNightOf: lastCompletedNightOf(entries, now, next, rolloverHour),
   };
 }

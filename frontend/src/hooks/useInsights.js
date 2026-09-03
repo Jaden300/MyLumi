@@ -40,11 +40,28 @@ export function useInsights() {
     entries.at(-1)?.morning ? 'm' : ''
   }${entries.at(-1)?.night ? 'n' : ''}`;
   const lastSignature = useRef(null);
+  /* Monotonic request id. A cold start can take ~50s, which is long enough for
+     the data to change (a check-in in another tab, a "Try again" click) and for
+     a second request to overtake the first. Without this, whichever response
+     landed LAST won - so a stale answer could overwrite a fresh one and be shown
+     as current, which is exactly the "never silently-stale results" promise. */
+  const generation = useRef(0);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const load = useCallback(async () => {
     const rows = buildRows(entries, profile?.injuryDate ?? null);
+    const id = (generation.current += 1);
     setState((s) => ({ ...s, loading: true }));
     const insights = await fetchInsights(rows, daysSinceInjury);
+    // Ignore anything a newer request has already superseded, and anything that
+    // arrives after this screen is gone.
+    if (!mounted.current || id !== generation.current) return;
     setState({ loading: false, insights });
   }, [entries, profile?.injuryDate, daysSinceInjury]);
 

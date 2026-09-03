@@ -44,13 +44,32 @@ def test_trajectory_detects_improvement():
         JournalText(nightOf="2026-01-01", day="awful terrible day, severe pain and exhausted"),
         JournalText(nightOf="2026-01-02", day="bad day, painful and very tired throughout"),
         JournalText(nightOf="2026-01-03", day="a rough day but somewhat manageable overall"),
-        JournalText(nightOf="2026-01-04", day="better today, felt calmer and more settled"),
-        JournalText(nightOf="2026-01-05", day="good day, clear and rested and quite productive"),
+        JournalText(nightOf="2026-01-04", day="still sore but a little steadier than before"),
+        JournalText(nightOf="2026-01-05", day="better today, felt calmer and more settled"),
+        JournalText(nightOf="2026-01-06", day="a clearer day, rested and much more comfortable"),
+        JournalText(nightOf="2026-01-07", day="good day, clear and rested and quite productive"),
     ]
     result = analyse(texts)
     assert result["available"] is True
     assert result["trend"] == "improving"
-    assert result["nDays"] == 5
+    assert result["nDays"] == 7
+
+
+def test_refuses_below_the_threshold():
+    """Sentiment is gated exactly like the numeric models: under the threshold
+    it emits no number, rather than a score labelled `confidence: none`."""
+    texts = [
+        JournalText(nightOf=f"2026-01-{i:02d}", day="a rough and painful tiring day")
+        for i in range(1, 7)
+    ]
+    result = analyse(texts)
+
+    assert result["available"] is False
+    assert result["confidence"] == "none"
+    assert result["meanSentiment"] is None
+    assert result["points"] == []
+    # Counts journal entries, not sleep - the copy must not send the user to bed.
+    assert "night" not in result["reason"].lower()
 
 
 def test_empty_input_is_unavailable_not_a_crash():
@@ -61,9 +80,11 @@ def test_empty_input_is_unavailable_not_a_crash():
 
 
 def test_entries_are_ordered_by_date():
+    # Deliberately shuffled, and enough of them to clear the threshold.
+    days = ["a good and restful clear day", "an awful painful exhausting day"]
     texts = [
-        JournalText(nightOf="2026-01-03", day="a good and restful clear day"),
-        JournalText(nightOf="2026-01-01", day="an awful painful exhausting day"),
+        JournalText(nightOf=f"2026-01-{i:02d}", day=days[i % 2])
+        for i in (5, 1, 7, 3, 2, 6, 4)
     ]
     points = analyse(texts)["points"]
-    assert [p["nightOf"] for p in points] == ["2026-01-01", "2026-01-03"]
+    assert [p["nightOf"] for p in points] == [f"2026-01-0{i}" for i in range(1, 8)]

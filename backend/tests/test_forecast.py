@@ -78,3 +78,28 @@ def test_single_row_and_empty_input_are_safe():
         result = forecast(to_episodes(rows))
         assert result["available"] is False
         assert result["predictedBurden"] is None
+
+
+def test_interval_never_collapses_to_a_point():
+    """A perfectly flat history gives zero residuals. An unfloored interval
+    became [x, x] - a +/-0 band, which claims a certainty no personal model fit
+    on a few weeks of self-reports has earned."""
+    result = forecast(to_episodes(make_flat_rows(20)))
+
+    assert result["available"] is True
+    low, high = result["interval"]
+    assert high > low
+
+
+def test_reports_the_pairs_it_actually_fitted():
+    """nDays drove the confidence badge AND the interval multiplier, so reading
+    it off the episode count handed the narrowest band to the least data."""
+    rows = make_rows(25)
+    for row in rows[10:]:
+        row.nextSymptomBurden = None  # only 10 usable training pairs remain
+
+    result = forecast(to_episodes(rows))
+
+    assert result["available"] is True
+    assert result["nDays"] <= 10
+    assert result["confidence"] != "good"  # not the 21+ tier on 10 pairs

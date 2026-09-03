@@ -18,7 +18,13 @@ from typing import Optional
 
 import numpy as np
 
-from .confidence import INTERVAL_WIDENING, has_enough, insufficient_reason, tier_for
+from .confidence import (
+    INTERVAL_WIDENING,
+    MIN_FOR_ANY_INSIGHT,
+    has_enough,
+    insufficient_reason,
+    tier_for,
+)
 from .features import FEATURE_LABELS, Episode, build_matrix, complete_count
 
 MAX_BURDEN = 54
@@ -39,6 +45,17 @@ FORECAST_FEATURES = [
 ROWS_PER_FEATURE = 2.5
 
 RIDGE_ALPHA = 1.0
+
+# Smallest half-width the prediction interval may report, in burden points.
+# Guards the degenerate case where every logged night is identical: the residuals
+# are all zero, and an unfloored interval would render as a single number and
+# read as a promise.
+MIN_INTERVAL_HALF_WIDTH = 1.0
+
+# Fewest training pairs the forecast will fit on. One below MIN_FOR_ANY_INSIGHT
+# because the newest logged night has no following night and so cannot be a
+# pair - see the guard in forecast() for why that one row is structural.
+MIN_PAIRS_TO_FIT = MIN_FOR_ANY_INSIGHT - 1
 
 
 def _fit_ridge(x: np.ndarray, y: np.ndarray, alpha: float = RIDGE_ALPHA):
@@ -107,14 +124,20 @@ def forecast(episodes: list[Episode]) -> dict:
         }
 
     keys, x, y, _nights = _select_features(episodes)
-    if len(y) < 4:
-        # Enough episodes overall, but not enough with a *next* night to learn
-        # the transition from. Says so rather than falling back to an average.
+    # Enough episodes overall, but not enough with a *next* night to learn the
+    # transition from. Says so rather than falling back to an average.
+    #
+    # The bar is one BELOW the episode threshold, and that is deliberate: this
+    # model learns "night -> next night", so the final logged night can never be
+    # a training pair. Requiring 7 pairs would silently push the first forecast
+    # to the 8th night and move a threshold the product documents as 7. The lost
+    # row is structural, not missing data.
+    if len(y) < MIN_PAIRS_TO_FIT:
         return {
             "available": False,
             "reason": "Not enough back-to-back nights yet to forecast tomorrow.",
-            "confidence": tier,
-            "nDays": n_complete,
+            "confidence": "none",
+            "nDays": int(len(y)),
             "predictedBurden": None,
             "interval": None,
             "drivers": [],
@@ -122,6 +145,19 @@ def forecast(episodes: list[Episode]) -> dict:
         }
 
     coefs, y_mean, mu, sigma = _fit_ridge(x, y)
+
+    # The tier that governs the interval and the badge must reflect the rows
+    # actually FITTED, not the episode count. A user with 25 logged episodes but
+    # only 8 back-to-back pairs was being told "good confidence" (the 21+ tier)
+    # and handed the NARROWEST interval multiplier - the least data earning the
+    # most confident-looking band, which is exactly backwards.
+    n_fitted = int(len(y))
+    # A fit sitting one pair below the threshold (the structural case above) is
+    # reported as `low` rather than `none`: `none` means "no number at all", and
+    # we are about to emit one. It gets the widest interval either way.
+    fit_tier = tier_for(n_fitted)
+    if fit_tier == "none":
+        fit_tier = "low"
 
     # Predict from the most recent episode that has every feature we fitted on.
     latest = None
@@ -153,7 +189,10 @@ def forecast(episodes: list[Episode]) -> dict:
     residuals = y - fitted
     dof = max(1, len(y) - len(keys) - 1)
     spread = float(np.sqrt(np.sum(residuals**2) / dof))
-    half = INTERVAL_WIDENING[tier] * spread
+    # A perfectly flat history yields zero residuals and would collapse the
+    # interval to a point - a +/-0 band claims certainty no 7-night personal
+    # model has. Floor it so the interval always carries visible uncertainty.
+    half = max(INTERVAL_WIDENING[fit_tier] * spread, MIN_INTERVAL_HALF_WIDTH)
     interval = [
         round(float(max(0.0, prediction - half)), 1),
         round(float(min(MAX_BURDEN, prediction + half)), 1),
@@ -167,7 +206,7 @@ def forecast(episodes: list[Episode]) -> dict:
     drivers = []
     for idx in order[:3]:
         weight = float(contributions[idx])
-        if abs(weight) < 0.05:
+        if not np.isfinite(weight) or abs(weight) < 0.05:
             continue
         key = keys[idx]
         drivers.append(
@@ -179,11 +218,26 @@ def forecast(episodes: list[Episode]) -> dict:
             }
         )
 
+    # Non-finite values can be PRODUCED by the maths even from finite inputs
+    # (an overflowing mean gives inf, and inf/inf is NaN). np.clip does not catch
+    # NaN, and a bare NaN is not valid JSON - it 500s. Refuse rather than emit.
+    if not np.isfinite(prediction) or not all(np.isfinite(v) for v in interval):
+        return {
+            "available": False,
+            "reason": "MyLumi could not compute a reliable forecast from these nights.",
+            "confidence": fit_tier,
+            "nDays": n_fitted,
+            "predictedBurden": None,
+            "interval": None,
+            "drivers": [],
+            "maxBurden": MAX_BURDEN,
+        }
+
     return {
         "available": True,
         "reason": None,
-        "confidence": tier,
-        "nDays": n_complete,
+        "confidence": fit_tier,
+        "nDays": n_fitted,
         "predictedBurden": round(prediction, 1),
         "interval": interval,
         "drivers": drivers,

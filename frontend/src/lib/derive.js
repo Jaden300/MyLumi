@@ -106,11 +106,11 @@ export function toFeatureRow(entry, nextEntry = null, injuryDate = null) {
     symptomBurden: entry.night.symptomBurden ?? computeSymptomBurden(symptoms),
     mood: entry.night.mood ?? null,
     preSleepStress: entry.night.sleep?.preSleepStress ?? null,
-    sleepAidUsed: entry.night.sleep?.sleepAidUsed === true ? 1 : 0,
+    sleepAidUsed: boolToFlag(entry.night.sleep?.sleepAidUsed),
     sleepDurationMinutes: deriveSleepDuration(entry),
     sleepQuality: entry.morning?.sleepQuality ?? null,
     awakenings: awakeningsToOrdinal(entry.morning?.awakenings),
-    dreamRecall: entry.morning?.dreamRecall === true ? 1 : 0,
+    dreamRecall: boolToFlag(entry.morning?.dreamRecall),
     moodMorning: entry.morning?.moodMorning ?? null,
     energy: entry.morning?.energy ?? null,
     readiness: entry.morning?.readiness ?? null,
@@ -122,6 +122,21 @@ export function toFeatureRow(entry, nextEntry = null, injuryDate = null) {
     row[`symptom_${key}`] = Number.isFinite(symptoms[key]) ? symptoms[key] : null;
   }
   return row;
+}
+
+/**
+ * Boolean answer -> 1/0, but a MISSING answer stays null.
+ *
+ * `x === true ? 1 : 0` would send 0 for an unanswered question, which the model
+ * reads as a real "no" rather than as an absence - the fabricated-zero this
+ * project refuses everywhere else. Both flows currently initialise these fields
+ * to `false`, so this is a guard on the contract rather than a live leak; the
+ * backend already accepts null for both.
+ */
+function boolToFlag(value) {
+  if (value === true) return 1;
+  if (value === false) return 0;
+  return null;
 }
 
 /** Highest-scoring symptom in an entry, for the daily summary. */

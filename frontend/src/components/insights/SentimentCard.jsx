@@ -47,7 +47,19 @@ export function SentimentCard({ result, loading, onRevoke }) {
     );
   }
 
-  if (!result) return null;
+  /* Not loading and no result. The caller has already established that consent
+     is on and there is journal text, so rendering nothing leaves the section
+     silently blank with no way back except a page reload - which is what a
+     revoke-then-regrant used to do. Say something honest instead. */
+  if (!result) {
+    return (
+      <Card title="Journal tone">
+        <p className="text-muted text-sm">
+          Nothing to show right now. This will fill in the next time your journal entries are read.
+        </p>
+      </Card>
+    );
+  }
 
   /* Offline and "nothing scorable yet" share one envelope and one path, the same
      collapse InsightsSection makes. Consent stays ON through both - an empty

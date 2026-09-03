@@ -61,6 +61,9 @@ describe('computeStreak', () => {
 });
 
 describe('refreshRescue', () => {
+  /* Resetting `usedOn` here is correct - this object is the monthly ALLOWANCE.
+     The permanent record of which nights were rescued lives in `rescueHistory`,
+     which is what `wasRescued` reads; see 'rescue survives a month boundary'. */
   it('grants a fresh allowance in a new month', () => {
     const stale = { monthKey: '2025-12', available: false, usedOn: '2025-12-20' };
     expect(refreshRescue(stale, NOW)).toEqual({ monthKey: '2026-01', available: true, usedOn: null });
@@ -146,10 +149,68 @@ describe('applyRescue', () => {
 });
 
 describe('wasRescued', () => {
-  it('identifies the rescued night', () => {
-    const rescue = { monthKey: '2026-01', available: false, usedOn: '2026-01-09' };
-    expect(wasRescued('2026-01-09', rescue)).toBe(true);
-    expect(wasRescued('2026-01-08', rescue)).toBe(false);
+  it('identifies the rescued night from the durable history', () => {
+    const state = defaultStreak({
+      rescue: { monthKey: '2026-01', available: false, usedOn: '2026-01-09' },
+      rescueHistory: [{ monthKey: '2026-01', nightOf: '2026-01-09', usedAt: 'x' }],
+    });
+    expect(wasRescued('2026-01-09', state)).toBe(true);
+    expect(wasRescued('2026-01-08', state)).toBe(false);
+  });
+
+  /* The bug this guards: `refreshRescue` resets the monthly ALLOWANCE on the 1st
+     and nulls `usedOn`. Reading the rescued night off that object meant a
+     rescued night silently stopped counting the moment the month ticked over. */
+  it('still identifies a rescued night after the monthly allowance resets', () => {
+    const state = defaultStreak({
+      rescue: { monthKey: '2026-02', available: true, usedOn: null },
+      rescueHistory: [{ monthKey: '2026-01', nightOf: '2026-01-30', usedAt: 'x' }],
+    });
+    expect(wasRescued('2026-01-30', state)).toBe(true);
+  });
+});
+
+describe('rescue survives a month boundary', () => {
+  /* Regression: a 5-night streak rescued on Jan 31 collapsed to 1 on Feb 1 and
+     0 on Feb 2, purely because the calendar flipped. */
+  it('keeps counting a night rescued in the previous month', () => {
+    const entries = complete('2026-01-26', '2026-01-27', '2026-01-28', '2026-01-29');
+    const jan31 = new Date(2026, 0, 31, 21, 0);
+
+    const rescued = applyRescue(
+      defaultStreak({ rescue: { monthKey: '2026-01', available: true, usedOn: null } }),
+      entries,
+      '2026-01-30',
+      jan31,
+    );
+    expect(rescued.ok).toBe(true);
+    expect(rescued.streak.current).toBe(5); // Jan 26-29 + rescued Jan 30
+
+    Object.assign(entries, complete('2026-01-31'));
+
+    const feb1 = recomputeStreakState(rescued.streak, entries, new Date(2026, 1, 1, 9, 0));
+    expect(feb1.current).toBe(6);
+    expect(feb1.rescue.available).toBe(true); // February's allowance is fresh
+    expect(feb1.rescueHistory).toHaveLength(1); // ...but January's record survives
+
+    Object.assign(entries, complete('2026-02-01'));
+    const feb2 = recomputeStreakState(feb1, entries, new Date(2026, 1, 2, 21, 0));
+    expect(feb2.current).toBe(7);
+  });
+
+  it('still grants a fresh rescue in the new month', () => {
+    const entries = complete('2026-01-28', '2026-01-29');
+    const jan31 = new Date(2026, 0, 31, 21, 0);
+    let state = applyRescue(defaultStreak(), entries, '2026-01-30', jan31).streak;
+    Object.assign(entries, complete('2026-01-31', '2026-02-01')); // Feb 2 missed
+
+    const feb3 = new Date(2026, 1, 3, 21, 0);
+    state = recomputeStreakState(state, entries, feb3);
+    const second = applyRescue(state, entries, '2026-02-02', feb3);
+
+    expect(second.ok).toBe(true);
+    expect(second.streak.rescueHistory).toHaveLength(2);
+    expect(second.streak.current).toBe(6); // Jan 28,29 + rescued 30, 31, Feb 1 + rescued 2
   });
 });
 

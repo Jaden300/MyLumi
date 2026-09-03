@@ -127,6 +127,65 @@ describe('privacy boundary', () => {
   });
 });
 
+/* A 200 is not a promise of the right shape. These bodies are all things a real
+   deployment serves: a misrouted path hitting FastAPI's 404 handler, a proxy or
+   platform error page rendered as JSON, a half-deployed backend. The UI reads
+   `forecast.available` directly, so an absent section used to throw and take the
+   whole dashboard down through the error boundary. */
+describe('fetchInsights shape validation', () => {
+  const malformed = [
+    ['a JSON 404 body', { detail: 'Not Found' }],
+    ['an empty object', {}],
+    ['a platform status page', { message: 'service starting' }],
+    ['an array', [1, 2, 3]],
+    ['null', null],
+    ['a partial body missing anomaly', { forecast: { available: false }, correlation: { available: false } }],
+  ];
+
+  for (const [label, body] of malformed) {
+    it(`returns the offline envelope for ${label}`, async () => {
+      stubFetch(() => Promise.resolve(jsonResponse(body)));
+      const { fetchInsights } = await loadApi();
+      const result = await fetchInsights([]);
+
+      expect(result.offline).toBe(true);
+      // Every section must be safely destructurable by the UI.
+      for (const section of [result.forecast, result.correlation, result.anomaly]) {
+        expect(section).toBeTypeOf('object');
+        expect(section.available).toBe(false);
+        expect(section.reason).toBeTruthy();
+      }
+    });
+  }
+
+  it('passes a well-formed response through untouched', async () => {
+    const body = {
+      forecast: { available: true, nDays: 20, predictedBurden: 22.5, interval: [19, 26] },
+      correlation: { available: false, findings: [] },
+      anomaly: { available: true, anomalies: [] },
+    };
+    stubFetch(() => Promise.resolve(jsonResponse(body)));
+    const { fetchInsights } = await loadApi();
+    const result = await fetchInsights([]);
+
+    expect(result.offline).toBe(false);
+    expect(result.forecast.predictedBurden).toBe(22.5);
+  });
+});
+
+describe('analyseJournal shape validation', () => {
+  it('returns the offline envelope when the body is not a result', async () => {
+    stubFetch(() => Promise.resolve(jsonResponse({ detail: 'Not Found' })));
+    const { analyseJournal } = await loadApi();
+    const result = await analyseJournal([]);
+
+    expect(result.offline).toBe(true);
+    expect(result.available).toBe(false);
+    expect(result.reason).toBeTruthy(); // never an empty explanation
+    expect(result.points).toEqual([]);
+  });
+});
+
 describe('pingHealth', () => {
   it('is silent when no API URL is configured', async () => {
     const fetchSpy = vi.fn();

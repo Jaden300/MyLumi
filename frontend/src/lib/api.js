@@ -34,6 +34,10 @@ const offline = (reason) => ({
 
 const OFFLINE_MESSAGE = "MyLumi can't reach its model service right now. Your data is safe on this device.";
 
+/* A response section the UI can safely destructure. Guards the shape, not the
+   values - a section may legitimately be `{available: false, reason}`. */
+const isSection = (value) => value != null && typeof value === 'object' && !Array.isArray(value);
+
 async function post(path, body, { timeout = COLD_START_TIMEOUT_MS } = {}) {
   if (!BASE_URL) return { ok: false, error: 'unconfigured' };
 
@@ -86,11 +90,29 @@ export function pingHealth() {
  */
 export async function fetchInsights(rows, daysSinceInjury = null) {
   const result = await post('/v1/insights', { rows, daysSinceInjury });
+  const offlineEnvelope = (reason) => ({
+    forecast: offline(reason),
+    correlation: offline(reason),
+    anomaly: offline(reason),
+    offline: true,
+  });
+
   if (!result.ok) {
-    const reason = result.error === 'unconfigured'
-      ? 'Model service is not configured for this build.'
-      : OFFLINE_MESSAGE;
-    return { forecast: offline(reason), correlation: offline(reason), anomaly: offline(reason), offline: true };
+    return offlineEnvelope(
+      result.error === 'unconfigured'
+        ? 'Model service is not configured for this build.'
+        : OFFLINE_MESSAGE,
+    );
+  }
+
+  /* A 200 is not a promise of the right shape. A misrouted path, a proxy error
+     page served as JSON, or a half-deployed backend all return well-formed JSON
+     that is missing these sections - and the UI reads `forecast.available`
+     directly, so an absent section took down the whole dashboard through the
+     error boundary. Treating a wrong shape as "service unavailable" is both true
+     and the path the UI already knows how to render. */
+  if (!isSection(result.data?.forecast) || !isSection(result.data?.correlation) || !isSection(result.data?.anomaly)) {
+    return offlineEnvelope(OFFLINE_MESSAGE);
   }
   return { ...result.data, offline: false };
 }
@@ -108,6 +130,16 @@ export async function fetchInsights(rows, daysSinceInjury = null) {
  */
 export async function analyseJournal(texts) {
   const result = await post('/v1/nlp', { texts });
-  if (!result.ok) return { ...offline(OFFLINE_MESSAGE), points: [], trend: null, meanSentiment: null, offline: true };
+  const offlineEnvelope = () => ({
+    ...offline(OFFLINE_MESSAGE),
+    points: [],
+    trend: null,
+    meanSentiment: null,
+    offline: true,
+  });
+  if (!result.ok) return offlineEnvelope();
+  // Same reasoning as fetchInsights: a 200 with the wrong shape is not a result.
+  // Without this the card rendered an empty explanation paragraph.
+  if (!isSection(result.data) || typeof result.data.available !== 'boolean') return offlineEnvelope();
   return { ...result.data, offline: false };
 }

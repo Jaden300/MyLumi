@@ -83,3 +83,11 @@ export const AWAKENING_OPTIONS = ['0', '1', '2', '3+'];
 
 /* Free-text fields are capped to keep a runaway paste from filling storage. */
 export const MAX_JOURNAL_CHARS = 5000;
+
+/* Below this many complete episodes MyLumi emits no prediction at all - not a
+   hedged one, none. Mirrors MIN_FOR_ANY_INSIGHT in backend/app/models/confidence.py.
+   The rule is enforced on BOTH sides on purpose: the server decides what to
+   compute, and the client refuses to render a prediction regardless of what a
+   server says, so a schema drift or a misrouted response cannot put a number in
+   front of a patient that the data does not support. */
+export const MIN_NIGHTS_FOR_INSIGHT = 7;

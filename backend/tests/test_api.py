@@ -71,12 +71,15 @@ def test_feature_row_carries_no_identifiers():
 
 
 def test_nlp_endpoint_works_and_is_separate():
+    days = ["an awful painful exhausting day", "a good clear rested day overall"]
     response = client.post(
         "/v1/nlp",
         json={
             "texts": [
-                {"nightOf": "2026-01-01", "day": "an awful painful exhausting day", "factors": "", "wakeFeeling": ""},
-                {"nightOf": "2026-01-02", "day": "a good clear rested day overall", "factors": "", "wakeFeeling": ""},
+                {"nightOf": f"2026-01-{i:02d}", "day": days[i % 2], "factors": "", "wakeFeeling": ""}
+                # Enough entries to clear the threshold; sentiment is gated like
+                # every other model.
+                for i in range(1, 8)
             ]
         },
     )

@@ -27,7 +27,7 @@
    judge and a teammate looking at "the same" demo must not see different numbers,
    and a flaky demo is worse than no demo. */
 
-import { toLocalISODate, prevDay } from './dates.js';
+import { prevDay, currentNightOf } from './dates.js';
 import { computeSymptomBurden } from './derive.js';
 import { SYMPTOM_KEYS } from './constants.js';
 import { createDefaultData } from './schema.js';
@@ -106,8 +106,13 @@ export function buildDemoData(now = new Date(), { nights = DEMO_NIGHTS } = {}) {
 
   // End yesterday: today's check-in is left undone on purpose, so the dashboard
   // opens with something to do rather than an "all caught up" dead end.
+  //
+  // "Yesterday" must be relative to the CURRENT NIGHT, not the calendar date.
+  // Between midnight and 4am those differ, and using the raw date seeded one
+  // night too many - filling in the very night the user was about to log and
+  // handing them the dead end this line exists to avoid.
   const dates = [];
-  let cursor = prevDay(toLocalISODate(now));
+  let cursor = prevDay(currentNightOf(now));
   for (let i = 0; i < nights; i += 1) {
     dates.unshift(cursor);
     cursor = prevDay(cursor);

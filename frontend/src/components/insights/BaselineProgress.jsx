@@ -10,8 +10,7 @@
 
 import { Card } from '../ui/Card.jsx';
 import { Lumi } from '../lumi/Lumi.jsx';
-
-const NIGHTS_NEEDED = 7;
+import { MIN_NIGHTS_FOR_INSIGHT as NIGHTS_NEEDED } from '../../lib/constants.js';
 
 export function BaselineProgress({ nDays = 0, reason }) {
   const done = Math.min(nDays, NIGHTS_NEEDED);

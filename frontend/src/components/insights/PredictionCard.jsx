@@ -10,7 +10,7 @@
 import { Link } from 'react-router-dom';
 import { Card } from '../ui/Card.jsx';
 import { ConfidenceBadge } from './ConfidenceBadge.jsx';
-import { MAX_SYMPTOM_BURDEN as MAX_BURDEN } from '../../lib/constants.js';
+import { MAX_SYMPTOM_BURDEN as MAX_BURDEN, MIN_NIGHTS_FOR_INSIGHT } from '../../lib/constants.js';
 
 /** Plain-language band. Never a diagnosis, never a recovery date. */
 function bandFor(value) {
@@ -20,6 +20,9 @@ function bandFor(value) {
   if (fraction < 0.6) return 'a heavier day';
   return 'a difficult day';
 }
+
+const isFinitePair = (value) =>
+  Array.isArray(value) && value.length === 2 && value.every((n) => Number.isFinite(n));
 
 /**
  * `compact` drops the drivers list and links to /insights for the reasoning.
@@ -32,7 +35,16 @@ export function PredictionCard({ forecast, compact = false }) {
   if (!forecast?.available) return null;
 
   const { predictedBurden, interval, drivers, confidence, nDays } = forecast;
-  const [low, high] = interval ?? [null, null];
+
+  /* Refuse to render regardless of what the server said.
+     `available: true` is the server's opinion; these are the app's own rules,
+     and the under-7-nights refusal is too important to hold in one place. A
+     partial body previously rendered the literal headline "null-null of 54 -
+     most likely around undefined, a difficult day" at three nights of data. */
+  if (!Number.isFinite(nDays) || nDays < MIN_NIGHTS_FOR_INSIGHT) return null;
+  if (!Number.isFinite(predictedBurden) || !isFinitePair(interval)) return null;
+
+  const [low, high] = interval;
 
   return (
     <Card title="Tomorrow's outlook">

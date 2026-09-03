@@ -128,10 +128,29 @@ with progress toward the threshold.
 | 14-20 | `moderate` | Normal |
 | 21+ | `good` | Full confidence |
 
+The same threshold gates journal sentiment, counted in journal entries rather
+than sleep episodes. A lexicon score over one entry is noise with a number
+attached, and `available: true` beside `confidence: "none"` is a self-
+contradictory answer - `none` means no number at all.
+
+**The rule is enforced on both sides.** The server decides what to compute; the
+client refuses to render a prediction regardless of what a server sends. A rule
+this important should not have a single point of failure, and a malformed or
+unexpected response must never be able to put a number in front of a patient
+that the data does not support.
+
 **Refuse to invent data.** A missing answer stays `null` from the input through
 storage to the feature row to the model. Rows lacking a needed feature are
 *dropped* from a fit, never imputed, and each model reports the `n` it actually
 used. A fabricated `0` would enter the clinical record as a real observation.
+
+That `n` is the count actually **fitted**, not the number of episodes on file.
+The forecast learns a night-to-next-night transition, so it can only train on
+episodes that have a following night; reporting the episode count instead let a
+model fit on a handful of pairs advertise the top confidence tier - and collect
+the narrowest interval while doing it. The interval also carries a floor, so a
+perfectly flat history reports a band rather than collapsing to a single number
+that would read as certainty.
 
 **Refuse to claim causation.** Findings are phrased "on days following…", never
 "because of". A backend test asserts the causal vocabulary (`causes`, `due to`,

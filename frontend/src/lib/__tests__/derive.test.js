@@ -121,4 +121,27 @@ describe('toFeatureRow', () => {
   it('returns null without a night block', () => {
     expect(toFeatureRow({ nightOf: '2026-01-05', night: null, morning: null })).toBe(null);
   });
+
+  /* A real "no" and an unanswered question are different observations, and the
+     no-fabrication rule does not stop applying at the network boundary. These
+     two fields used to collapse both to 0. */
+  it('sends null, not 0, for an unanswered boolean', () => {
+    const entry = entryWith();
+    delete entry.night.sleep.sleepAidUsed;
+    delete entry.morning.dreamRecall;
+
+    const row = toFeatureRow(entry);
+    expect(row.sleepAidUsed).toBe(null);
+    expect(row.dreamRecall).toBe(null);
+  });
+
+  it('still distinguishes an explicit false from a missing answer', () => {
+    const entry = entryWith();
+    entry.night.sleep.sleepAidUsed = false;
+    entry.morning.dreamRecall = true;
+
+    const row = toFeatureRow(entry);
+    expect(row.sleepAidUsed).toBe(0);
+    expect(row.dreamRecall).toBe(1);
+  });
 });

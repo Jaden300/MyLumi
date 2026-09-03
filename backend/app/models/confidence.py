@@ -45,6 +45,11 @@ def insufficient_reason(n: int) -> str:
     N more nights" is the same fact without the blame.
     """
     missing = MIN_FOR_ANY_INSIGHT - n
+    if missing <= 0:
+        # Called at or above the threshold. There is no shortfall to describe, so
+        # do not invent one - an earlier version cheerfully said "0 more complete
+        # nights", and "-1 more" once a caller moved.
+        return "MyLumi has enough nights to start looking for patterns."
     if missing == 1:
         return "One more complete night and MyLumi can start looking for patterns."
     return f"{missing} more complete nights and MyLumi can start looking for patterns."

@@ -125,9 +125,37 @@ class TestSevenNightRefusal:
 
     def test_seven_nights_is_no_longer_confidence_none(self):
         """The boundary actually moves at 7, so the refusal is about data volume
-        and not a blanket refusal that would never lift."""
-        body = client.post(
-            "/v1/insights",
-            json={"rows": [row(i, 20.0 + i, 400.0 + i * 8) for i in range(1, 8)]},
-        ).json()
-        assert body["forecast"]["confidence"] != "none"
+        and not a blanket refusal that would never lift.
+
+        The rows carry `nextSymptomBurden` because the forecast learns the
+        night -> next-night transition; without a target there is nothing to fit
+        and the refusal would be about missing training pairs rather than about
+        data volume, which is not what this test is pinning.
+        """
+        rows_with_targets = [
+            {**row(i, 20.0 + i, 400.0 + i * 8), "nextSymptomBurden": 21.0 + i}
+            for i in range(1, 8)
+        ]
+        body = client.post("/v1/insights", json={"rows": rows_with_targets}).json()
+        fc = body["forecast"]
+
+        assert fc["confidence"] != "none"
+        assert fc["available"] is True
+        # nDays reports the pairs actually fitted, not the episode count.
+        assert fc["nDays"] == 7
+
+    def test_reported_ndays_is_the_data_actually_fitted(self):
+        """A tier read off the episode count let a model fit on a handful of
+        pairs advertise `good` confidence - and collect the NARROWEST interval
+        multiplier while doing it."""
+        rows_ = [
+            {**row(i, 20.0 + (i % 7), 400.0 + (i % 5) * 30), "sleepQuality": float(1 + i % 5)}
+            for i in range(1, 26)
+        ]
+        for i in range(8):  # only the first 8 can form a training pair
+            rows_[i]["nextSymptomBurden"] = 21.0 + (i % 7)
+
+        fc = client.post("/v1/insights", json={"rows": rows_}).json()["forecast"]
+
+        assert fc["nDays"] == 8
+        assert fc["confidence"] == "low"  # 8 pairs, not the 25-episode "good"
