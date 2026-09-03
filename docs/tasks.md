@@ -18,9 +18,12 @@ Phases follow [MyLumi_Plan.md](../MyLumi_Plan.md) §8 (tentative - reorder freel
 - [x] Streaks + streak rescue
 - [x] History view + entry detail
 - [x] Symptom heat strip
-- [x] "Your Data" page - export + delete (pulled forward from Phase 4)
+- [x] ~~"Your Data" page - export + delete~~ (built, then removed in the design
+      pass - see the deviation note in `MyLumi_Plan.md`. Demo data moved to the
+      dashboard; consent moved to the journal tone card)
 - [x] Limitations / about page (pulled forward from Phase 4)
 - [x] Unit + integration tests (71 passing)
+- [x] Design pass: mesh background, grid layouts, decorative Lumi, caption removal
 
 ## Phase 3 - Intelligence ✅ (code complete - deploy outstanding)
 
@@ -36,6 +39,57 @@ Phases follow [MyLumi_Plan.md](../MyLumi_Plan.md) §8 (tentative - reorder freel
       Then set `FRONTEND_ORIGINS` on the service and `VITE_API_URL` for the
       frontend build, and record the URL in `docs/stack.md`.
 
+## Phase 3b - Depth pass on the models
+
+The intelligence layer was real but narrow: five features, one aggregate target,
+and no measurement of whether any of it worked. Three models added, all
+numpy/scipy, all explainable.
+
+- [x] **Per-symptom model** (`models/symptoms.py`) - the nine PCSS items were
+      crossing the wire on every request and no model read them; `to_episodes`
+      did not even copy them into `Episode.values`. Now: which symptoms take a
+      larger share of the burden after a short night (Mann-Whitney on
+      composition shares), and which are actually resolving (Theil-Sen with an
+      interval that has to not straddle zero). Holm-corrected across all nine.
+- [x] **Validation layer** (`models/validation.py`) - walk-forward one-step-ahead
+      backtesting against the naive "tomorrow = today" baseline, reported to the
+      user whichever way it goes.
+- [x] **Latent recovery state** (`models/state.py`) - local-linear-trend Kalman
+      filter with an RTS smoother, separating the underlying level from
+      day-to-day self-report noise.
+- [x] Three cards, hand-rolled SVG. Per-model confidence floors that scale their
+      own tiers. Per-section try/except in the batched router.
+- [ ] Stronger NLP - lexicon expansion, linguistic complexity as a cognitive-load
+      proxy, symptom-term extraction with the text-vs-numbers agreement check
+      done client-side. Deferred, not cut.
+
+**On measuring before building.** Each model was prototyped against the
+project's own data-generating process before being planned, and two candidates
+were rejected on the evidence: PCA over the nine symptoms (one component
+explains ~80% of the variance and the second is not distinguishable from noise
+by parallel analysis at these sample sizes), and fitting the Kalman noise
+parameters by EM (collapses at n=26 and loses to the raw self-reports in two of
+three trials; the fixed-ratio prior wins 24 of 24).
+
+**Three bugs this found, all measured rather than guessed at:**
+
+1. The forecast interval was in-sample residual spread times a per-tier
+   multiplier. The `good` tier's 1.28, documented as "~80%", delivered **51%**
+   real coverage - the most-confident tier giving the least honest band.
+   Split-conformal on out-of-sample errors takes held-out coverage from 68% to
+   87% against an 80% target.
+2. The state model estimated observation noise from night-to-night differences,
+   which double-counts an oscillating series. On the demo data that came out
+   2.2x the true residual spread and made a clear 6 points a week of recovery
+   report as "steady".
+3. The per-symptom rates required a confidence interval strictly excluding zero.
+   On integer 0-6 ratings Theil-Sen's bound lands exactly on zero constantly:
+   all nine symptoms survived Holm at p<0.01 with negative slopes and eight read
+   "not clear yet".
+
+Both 2 and 3 were false negatives found by running the models against the actual
+demo seed rather than only against fixtures - worth doing before every demo.
+
 ## Phase 4 - Insights & Responsible AI ✅
 
 - [x] Daily recovery report - shown on completing a morning check-in, not a route
@@ -48,9 +102,10 @@ Phases follow [MyLumi_Plan.md](../MyLumi_Plan.md) §8 (tentative - reorder freel
 **On the consent gate:** off by default and stored *off by absence* - the pref is
 either `{granted: true}` or the key is missing, so no malformed blob can read as
 consent. It lives in `prefs`, not `data`, so it never appears in a clinical
-export (same rule as red-flag dismissals). The canonical control is on Your Data,
-because a switch that can only be found on the Insights page is not revocable in
-practice; Insights carries an opt-in prompt that flips the same flag. The gate is
+export (same rule as red-flag dismissals). The canonical control is the journal
+tone card itself, which carries both the opt-in prompt and the off switch - the
+off switch renders on every branch of that card, including the offline and
+empty ones, so it is never reachable only when there are results to show. The gate is
 enforced in `useJournalInsights`, not in `api.js` - and `analyseJournal`'s
 docstring now says so, replacing a comment that claimed a guarantee that layer
 never provided.

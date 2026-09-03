@@ -21,7 +21,7 @@ Interactive API docs: http://localhost:8000/docs
 ## Test
 
 ```bash
-.venv/bin/python -m pytest        # 68 tests
+.venv/bin/python -m pytest        # 177 tests
 ```
 
 Tests are statistically seeded - no flaky assertions. `tests/fixtures.py` plants
@@ -48,14 +48,19 @@ without a server, mirroring how `frontend/src/lib/` is pure and fully covered.
 |---|---|
 | `GET /health` | Health check, and the frontend's wake-up ping |
 | `POST /v1/insights` | **The one the app calls** - forecast + correlation + anomaly in a single request |
-| `POST /v1/forecast` | Ridge regression on lagged features |
+| `POST /v1/forecast` | Ridge regression, conformal interval |
 | `POST /v1/correlation` | Spearman + threshold search |
 | `POST /v1/anomaly` | Robust (median/MAD) outlier detection |
+| `POST /v1/symptoms` | Per-symptom composition shifts and recovery rates |
+| `POST /v1/validation` | Walk-forward backtest of the forecast |
+| `POST /v1/state` | Latent recovery state (Kalman + RTS smoother) |
 | `POST /v1/nlp` | Journal sentiment - **separate payload, separate consent** |
 
-`/v1/insights` batches the three numeric models so a cold free-tier instance is
-woken once rather than three times, and so all three dashboard cards describe the
-same snapshot.
+`/v1/insights` batches every numeric model so a cold free-tier instance is woken
+once rather than six times, and so all the cards on a screen describe the same
+snapshot. Each model is called defensively there: one failing model returns its
+own "unavailable" envelope rather than 500ing the batch and blanking the five
+that worked.
 
 ## The response envelope
 
@@ -88,10 +93,21 @@ is the only honest option.
   test asserts the causal vocabulary never appears.
 - **Correct for multiple comparisons.** Four simultaneous tests at p<0.05 gave a
   false positive on ~50% of pure-noise datasets. Holm-Bonferroni cuts that to
-  ~20% while still catching 100% of genuine planted effects.
+  ~20% while still catching 100% of genuine planted effects. The per-symptom
+  model runs nine at once and applies the same correction; measured on trendless
+  data its false-positive rate is ~1%.
 - **Explain every prediction.** Standardised ridge coefficients *are* the
   explanation, read straight off the fitted model rather than reconstructed by a
-  separate method that might disagree with the number it explains.
+  separate method that might disagree with the number it explains. The same
+  applies to the newer models: a composition share, a Theil-Sen slope with its
+  interval, and a smoothed level with its band are all quantities you can point
+  at rather than attributions reconstructed after the fact.
+- **Measure the claims, do not assert them.** The forecast is backtested
+  walk-forward against a naive "tomorrow = today" baseline, and the result is
+  reported to the user whichever way it goes. This is also how the interval got
+  fixed: the old per-tier multipliers advertised ~80% coverage and delivered
+  ~51%, so they were replaced with a conformal width built from the model's own
+  out-of-sample errors.
 
 ## Deploy
 

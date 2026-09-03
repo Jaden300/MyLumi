@@ -39,6 +39,15 @@ There is no field in the request schema that could carry free text; a backend
 test (`test_numeric_endpoints_reject_journal_text`) and a frontend test
 (`buildRows › carries no journal text into the payload`) both assert it.
 
+**Nothing new was added to this table when the per-symptom, latent-state and
+validation models were built.** Those models are built entirely on data that was
+already being sent - in particular the nine PCSS items, which crossed the wire on
+every request and which, until then, no model read. Sending nine per-symptom
+clinical scores that nothing consumed was the sharpest inconsistency in a
+privacy-first design. The app now does substantially more modelling while
+transmitting *strictly less unused data*, which is the right direction for both
+arguments at once.
+
 `nightOf` is a date, and dates are the one quasi-identifying field here. It is
 required because the models are time-series: ordering, gaps and adjacency all
 depend on it. It is not paired with anything that identifies a person.
@@ -84,8 +93,13 @@ request. It is never stored, never logged, and never used to train anything.
   it is handed - `useJournalInsights` is what refuses to call it without consent,
   and the docstring on `analyseJournal` says so plainly rather than claiming a
   guarantee that layer does not provide.
-- **Revocable from Your data at any time.** The insights page can turn it on; the
-  Your data page is where it can always be found again to turn off.
+- **Revocable from the journal tone card at any time.** Consent is granted and
+  revoked from the same place: the card on the insights page. The off switch
+  renders on every branch of that card - including the offline and
+  nothing-to-show states - so it is never reachable only when there happen to be
+  results to show. Keeping it next to the feature it governs, rather than on a
+  separate settings page, means the control is wherever the user notices the
+  thing they want to stop.
 - **Revocation is complete by construction.** Results live in React state and are
   never written to localStorage, so there is no derived-from-text data on disk to
   clean up. Turning it off clears the card and stops all further sending.
@@ -104,14 +118,55 @@ No analytics, no trackers, no error reporting, no ad tech.
 
 | Model | Method | Why this method |
 |---|---|---|
-| Forecast | Ridge regression on lagged features | Standardised coefficients *are* the explanation - read off the fitted model, not reconstructed by a separate method that might disagree with the number it explains |
+| Forecast | Ridge regression on a lagged target, with a split-conformal interval | Standardised coefficients *are* the explanation - read off the fitted model, not reconstructed by a separate method that might disagree with the number it explains |
 | Correlation | Spearman + threshold search, Holm-Bonferroni corrected | Rank-based, so robust to ordinal self-reports and to one catastrophic night |
 | Anomaly | Robust z-score (median/MAD) | One very bad day must not inflate the threshold and hide the next one |
+| Per-symptom | Mann-Whitney on composition shares + Theil-Sen trends, both Holm-corrected | Composition asks "bad in what way", not "how bad" - raw scores on a heavy day are all high, so comparing them only rediscovers that bad days are bad |
+| Recovery state | Local-linear-trend Kalman filter with an RTS smoother | A self-report is a noisy reading of something unobservable; this estimates the thing rather than treating the reading as the truth |
+| Validation | Rolling-origin (walk-forward) backtesting against a naive baseline | The only honest way to answer "is any of this better than guessing" |
 | Sentiment | Weighted lexicon with negation and intensifiers | Fully auditable; every score decomposes into the words that produced it |
 
 Deliberately *not* used: gradient boosting, neural networks, or any model whose
 output cannot be explained to a patient in one sentence. A better score is not
 worth an unexplainable number (`MyLumi_Plan.md` §10.2).
+
+Also deliberately not used, and worth naming because each was built or costed
+before being rejected:
+
+- **PCA over the nine symptoms.** One component (overall severity) explains
+  around 80% of the variance and the second is not distinguishable from noise by
+  parallel analysis at the sample sizes this app has. Reporting a second axis
+  anyway would be inventing a pattern.
+- **Fitting the Kalman noise parameters by EM.** The textbook move, and at 10-40
+  nights it collapses: it drove the process noise to its floor, over-smoothed,
+  and produced an estimate *worse than the raw self-reports* in two of three
+  trials. The signal-to-noise ratio is a stated clinical prior instead, and only
+  the scale is estimated from the data. That version beat the raw reports in 24
+  of 24 trials. A stated assumption that works beats a fitted parameter that
+  does not, and it is far easier to explain.
+- **Clustering nights into "phenotypes".** At these sample sizes the clusters
+  are not stable across random seeds. A demo that shows different groupings on
+  reload is not a finding.
+- **Exponential recovery-curve fitting.** The only interesting thing to do with
+  the fitted time constant is extrapolate it, and that is a recovery date.
+
+### What the models measure about themselves
+
+The forecast's interval used to be its in-sample residual spread times a
+per-tier multiplier. Simulation showed that band did not mean what it said: the
+`good` tier's 1.28, documented as "~80%", delivered about **51%** real coverage.
+The most-confident tier was handing out the least honest interval.
+
+It is now a split-conformal width taken from the model's own one-step-ahead
+errors on the user's history. Measured the same way, held-out coverage went from
+68% to 87% against an 80% target. The same errors produce the coverage figure
+shown on the honesty card, so the band a user sees and the accuracy claimed
+beside it can never disagree.
+
+The honesty card reports the comparison against "tomorrow will be like today"
+**whichever way it goes**. The losing copy is written and rendered exactly like
+the winning copy, and a component test pins that. A validation layer that only
+appears when the news is good is marketing, not validation.
 
 ## What the models refuse to do
 
@@ -133,6 +188,26 @@ than sleep episodes. A lexicon score over one entry is noise with a number
 attached, and `available: true` beside `confidence: "none"` is a self-
 contradictory answer - `none` means no number at all.
 
+**Some models need more than seven, and ask for it.** Seven is the app's
+minimum, not a licence for every model to speak at it. A model that needs more
+data says so rather than answering thinly:
+
+| Model | Floor | Why higher |
+|---|---|---|
+| Per-symptom rates | 10 nights with all 9 items rated | Nine simultaneous trend tests need more data than one |
+| Recovery state | 10 logged nights | A slope from seven points has an error bar so wide the model would always say "steady" - a card that can never say anything is worse than no card |
+| Validation | 12 usable pairs | Two out-of-sample errors do not establish an error rate |
+
+Their confidence tiers scale with their own floor rather than reusing 14 and 21.
+Otherwise a model needing 14 nights would advertise the top tier on only seven
+more than its own minimum, on data with far more dimensions than the forecast
+works in.
+
+The per-symptom model also counts a stricter thing than the others - nights with
+**all nine** items rated - and says so in its own words. Reusing the generic
+copy would tell a user to log more nights when what they actually need is to
+finish the symptom section.
+
 **The rule is enforced on both sides.** The server decides what to compute; the
 client refuses to render a prediction regardless of what a server sends. A rule
 this important should not have a single point of failure, and a malformed or
@@ -143,6 +218,20 @@ that the data does not support.
 storage to the feature row to the model. Rows lacking a needed feature are
 *dropped* from a fit, never imputed, and each model reports the `n` it actually
 used. A fabricated `0` would enter the clinical record as a real observation.
+
+The state-space model is the one place this rule had to be expressed
+differently, and it ends up making the point better than dropping a row does. It
+runs over a continuous timeline, so a missed night is handled by advancing the
+model's prediction with **no observation to correct it against**: the estimate
+carries forward and its uncertainty *grows*. No reading is invented, and the
+band on the chart visibly widens over the gap. The card says so in as many
+words - "it is wider where nights are missing, because MyLumi knows less about
+those days rather than filling them in" - and a test asserts the band after a
+gap is strictly wider than before it.
+
+That is the same rule the trajectory chart follows when it breaks its line
+across unlogged nights, expressed the other way round: there, missing data means
+no line; here, it means a visibly less certain one.
 
 That `n` is the count actually **fitted**, not the number of episodes on file.
 The forecast learns a night-to-next-night transition, so it can only train on
@@ -204,7 +293,9 @@ State these plainly; they are in the in-app About page too.
   at all if the user explicitly turns it on. The card is deliberately the
   quietest in the app: a smaller sparkline with no gridlines or axis labels,
   placed below the sentence rather than above it, so a word-list score never
-  looks as authoritative as the PCSS burden chart.
+  looks as authoritative as the PCSS burden chart. The limits of a lexicon
+  scorer are stated on the About page rather than under the card - see the note
+  on consolidated caveats below.
 - **Wall-clock sleep maths.** Durations spanning a daylight-saving change are an
   hour out; those nights are flagged and excluded from model fits rather than
   silently corrected.
@@ -288,7 +379,31 @@ their own record. `MyLumi_Plan.md` §3.4 suggests plotting burden against a
 typical recovery curve; we deliberately do not. A second line invites "am I ahead
 or behind?", which stages a person's recovery against a norm, and no honest
 population curve exists at 0-54 PCSS resolution to draw. The population context
-appears as text beside the chart, labelled as general population data.
+is stated on the About page, labelled as general population data, rather than
+beside the chart.
+
+## Where the caveats live
+
+Every limitation in this document is still stated in the product, but in one
+place rather than repeated under each card. The About page carries them:
+self-report bias, association-not-causation, the seven-night floor, the limits
+of a lexicon sentiment score, population context, and the fact that estimates
+are estimates rather than medical predictions.
+
+The reasoning is that a caveat under every chart stops being read. Fine print
+repeated on six screens is scenery; a page someone can actually be pointed to is
+a claim the product stands behind. What did **not** move:
+
+- **The red-flag banner** and the emergency symptom list at `/about#red-flags`.
+  Safety-critical copy is not consolidated anywhere - it appears at the moment it
+  is relevant, on every screen.
+- **Confidence badges and sample sizes** on each finding. Those are data about
+  the finding, not prose about the product, and they belong next to the number
+  they qualify.
+- **Daylight-saving notes** on affected durations, which flag a specific number
+  as possibly wrong rather than explaining the feature.
+- **The refusal rules themselves.** Nothing about which findings render changed:
+  under seven nights the app still emits no prediction at all.
 
 ## Verifying these claims
 
@@ -306,8 +421,8 @@ anything anywhere).
 
 ## Demo data
 
-The Your data page can load about three weeks of generated check-ins so the app
-can be seen with data in it. Three things keep that honest:
+The dashboard can load about three weeks of generated check-ins so the app can be
+seen with data in it. Three things keep that honest:
 
 - **Never automatic.** Silently writing fabricated clinical entries into someone's
   storage is the same act as imputing a missing symptom score, only larger. It
