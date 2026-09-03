@@ -196,16 +196,41 @@ class SymptomRate(BaseModel):
     n: int
 
 
+class SymptomGrid(BaseModel):
+    """The full nights x 9 matrix behind the rates and shifts.
+
+    `values` is one row per symptom, one column per night - the orientation the
+    heatmap draws in, so the client does no transposing.
+    """
+
+    nights: list[str] = Field(default_factory=list)
+    keys: list[str] = Field(default_factory=list)
+    labels: list[str] = Field(default_factory=list)
+    values: list[list[float]] = Field(default_factory=list)
+
+
 class SymptomsResponse(Envelope):
     shifts: list[SymptomShift] = Field(default_factory=list)
     rates: list[SymptomRate] = Field(default_factory=list)
+    grid: SymptomGrid = Field(default_factory=SymptomGrid)
     summary: Optional[str] = None
+
+
+class FoldPoint(BaseModel):
+    """One out-of-sample check: what it knew, and how far off it was."""
+
+    trainSize: int
+    error: float
+    naiveError: Optional[float] = None
+    nightOf: Optional[str] = None
 
 
 class ValidationResponse(Envelope):
     """How the forecast scored against its own history. May be bad news."""
 
     folds: int = 0
+    curve: list[FoldPoint] = Field(default_factory=list)
+    intervalHalfWidth: Optional[float] = None
     modelError: Optional[float] = None
     naiveError: Optional[float] = None
     skillScore: Optional[float] = None

@@ -275,6 +275,35 @@ def recovery_rates(episodes: list[Episode]) -> list[dict]:
     return rates
 
 
+def symptom_grid(episodes: list[Episode], limit: int = 30) -> dict:
+    """The full nights x 9 matrix, for the heatmap.
+
+    The rates and shifts above are summaries OF this. Sending the matrix itself
+    lets the UI draw the thing the summaries describe, so a reader can see the
+    cognitive band staying dark while the somatic one fades rather than being
+    asked to take two sentences on trust. 198 numbers is a picture; nine bars is
+    a conclusion.
+
+    Trimmed to the most recent `limit` nights: beyond about a month the cells
+    are too narrow to read, and this is the one payload here that grows with
+    history.
+    """
+    nights, matrix = symptom_matrix(episodes)
+    if not nights:
+        return {"nights": [], "keys": [], "labels": [], "values": []}
+
+    nights = nights[-limit:]
+    matrix = matrix[-limit:]
+    return {
+        "nights": nights,
+        "keys": list(SYMPTOM_KEYS),
+        "labels": [SYMPTOM_LABELS.get(k, k) for k in SYMPTOM_KEYS],
+        # Row per symptom, column per night - the orientation the chart draws in,
+        # so the client does no transposing.
+        "values": [[float(v) for v in matrix[:, i]] for i in range(len(SYMPTOM_KEYS))],
+    }
+
+
 def _mark_laggards(rates: list[dict]) -> None:
     """Flag symptoms resolving noticeably more slowly than the rest.
 
@@ -370,12 +399,14 @@ def analyse(episodes: list[Episode]) -> dict:
             "nDays": n,
             "shifts": [],
             "rates": [],
+            "grid": {"nights": [], "keys": [], "labels": [], "values": []},
             "summary": None,
         }
 
     shifts = composition_shift(episodes)
     rates = recovery_rates(episodes)
     _mark_laggards(rates)
+    grid = symptom_grid(episodes)
 
     if not shifts and not any(r["status"] != "unclear" for r in rates):
         return {
@@ -389,6 +420,7 @@ def analyse(episodes: list[Episode]) -> dict:
             "nDays": n,
             "shifts": [],
             "rates": rates,
+            "grid": grid,
             "summary": None,
         }
 
@@ -399,5 +431,6 @@ def analyse(episodes: list[Episode]) -> dict:
         "nDays": n,
         "shifts": shifts,
         "rates": rates,
+        "grid": grid,
         "summary": _summary(shifts, rates),
     }

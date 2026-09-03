@@ -10,6 +10,7 @@
    card, or on the network. */
 
 import { Card } from '../ui/Card.jsx';
+import { Lumi } from '../lumi/Lumi.jsx';
 import { formatNightLabel } from '../../lib/dates.js';
 
 export function AnomalyCard({ anomaly }) {
@@ -22,7 +23,8 @@ export function AnomalyCard({ anomaly }) {
   if (!notable.length) return null;
 
   return (
-    <Card title="Worth noting">
+    <Card title="Worth noting" variant="feature">
+      <Lumi size={170} state="attentive" className="lumi-deco lumi-deco--tr" />
       <div className="stack">
         <ul className="finding-list">
           {notable.map((point) => (
@@ -32,11 +34,6 @@ export function AnomalyCard({ anomaly }) {
             </li>
           ))}
         </ul>
-        <p className="text-muted text-xs">
-          Unusual compared with your own recent pattern. One heavier day is
-          normal in recovery. If days like this keep repeating, or you feel
-          worse overall, that's worth raising with a healthcare professional.
-        </p>
       </div>
     </Card>
   );

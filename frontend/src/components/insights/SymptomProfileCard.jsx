@@ -24,6 +24,7 @@
 import { Card } from '../ui/Card.jsx';
 import { Lumi } from '../lumi/Lumi.jsx';
 import { ConfidenceBadge } from './ConfidenceBadge.jsx';
+import { SymptomHeatmap } from './SymptomHeatmap.jsx';
 
 /* The widest weekly change the axis shows. Beyond this a bar is clamped and
    the number beside it carries the real value - one enormous bar would squash
@@ -44,7 +45,7 @@ function barWidth(weeklyChange) {
 export function SymptomProfileCard({ symptoms }) {
   if (!symptoms?.available) return null;
 
-  const { rates = [], shifts = [], summary, confidence, nDays } = symptoms;
+  const { rates = [], shifts = [], grid, summary, confidence, nDays } = symptoms;
   if (!rates.length && !shifts.length) return null;
 
   // Decided trends first, then the rest - the actionable rows should not be
@@ -65,6 +66,11 @@ export function SymptomProfileCard({ symptoms }) {
         </div>
 
         {summary && <p className="finding__statement">{summary}</p>}
+
+        {/* The evidence, before the summary of it. Every rating that produced
+            the rates below, so a reader can check the sentence against the
+            data instead of taking it on trust. */}
+        <SymptomHeatmap grid={grid} />
 
         {ordered.length > 0 && (
           <ul className="symptom-rates">

@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { NavLink, Link, Outlet, useLocation } from 'react-router-dom';
-import { DisclaimerFooter } from './DisclaimerFooter.jsx';
 import { ThemeToggle } from '../ui/ThemeToggle.jsx';
 import { Banner } from '../ui/Banner.jsx';
 import { Lumi } from '../lumi/Lumi.jsx';
+import { LumiSplatter } from '../lumi/LumiSplatter.jsx';
 import { RedFlagBanner } from '../RedFlagBanner.jsx';
 import { ErrorBoundary } from './ErrorBoundary.jsx';
 import { useLumiData } from '../../hooks/useLumiData.jsx';
@@ -39,6 +39,11 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
+      {/* Decorative background field, behind everything and hidden from assistive
+          tech. First in the DOM so the z-index rule in components.css can lift
+          every real child above it. */}
+      <LumiSplatter />
+
       {/* The natural use for the .sr-only class base.css already defines. With a
           persistent 4-item nav on every route, this saves a keyboard user four
           tab stops per page. */}
@@ -61,11 +66,17 @@ export function AppShell() {
           <NavLink to="/history" className="navlink">
             History
           </NavLink>
+          {/* Promoted out of the old footer band. It was the only thing left
+              down there once the disclaimer went, and a lone footer holding one
+              link reads as an afterthought. */}
+          <NavLink to="/about" className="navlink">
+            About
+          </NavLink>
           <ThemeToggle />
         </nav>
       </header>
 
-      <main className="app-main" id="main" ref={mainRef} tabIndex={-1}>
+      <main className={`app-main ${mainWidth(location.pathname)}`} id="main" ref={mainRef} tabIndex={-1}>
         {/* Above the storage notices deliberately. Those are about the app; this
             one is about the user, and it is the only banner here that could
             matter clinically. Rendered in the shell so it is visible from every
@@ -78,8 +89,8 @@ export function AppShell() {
         {isDemoData && (
           <div style={{ marginBottom: 'var(--space-4)' }}>
             <Banner tone="info" title="You're looking at demo data">
-              These entries were generated to show what MyLumi looks like in use. Clear them on{' '}
-              <Link to="/data">Your data</Link>.
+              These entries were generated to show what MyLumi looks like in use. Clear them from{' '}
+              <Link to="/">Today</Link>.
             </Banner>
           </div>
         )}
@@ -115,8 +126,16 @@ export function AppShell() {
           <Outlet />
         </ErrorBoundary>
       </main>
-
-      <DisclaimerFooter />
     </div>
   );
+}
+
+/* Layout width is a property of the page, but <main> lives in the shell. Rather
+   than have every page reach up through context to set it, the shell reads the
+   route: the two grid pages get the wide track, everything else stays in the
+   narrow reading column it was designed for. */
+function mainWidth(pathname) {
+  if (pathname === '/about' || pathname === '/insights') return 'app-main--full';
+  if (pathname === '/' || pathname.startsWith('/history')) return 'app-main--wide';
+  return '';
 }

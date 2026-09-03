@@ -16,8 +16,7 @@ export function JournalStep({ values, setValue }) {
       <TextArea
         label="Anything that made your symptoms better or worse today?"
         optional
-        hint="Screens, exercise, noise, rest, caffeine - whatever you noticed."
-        placeholder="Optional."
+        placeholder="Screens, exercise, noise, rest, caffeine..."
         value={values.journal?.factors}
         onChange={(value) => setValue('journal.factors', value)}
       />

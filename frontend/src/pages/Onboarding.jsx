@@ -1,7 +1,8 @@
-import { useState, useId } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card.jsx';
 import { Button } from '../components/ui/Button.jsx';
+import { DatePicker } from '../components/ui/DatePicker.jsx';
 import { Lumi } from '../components/lumi/Lumi.jsx';
 import { useLumiData } from '../hooks/useLumiData.jsx';
 import { toLocalISODate, isValidISODate, daysBetween } from '../lib/dates.js';
@@ -9,7 +10,6 @@ import { toLocalISODate, isValidISODate, daysBetween } from '../lib/dates.js';
 export function Onboarding() {
   const { updateProfile } = useLumiData();
   const navigate = useNavigate();
-  const dateId = useId();
   const today = toLocalISODate(new Date());
   const [injuryDate, setInjuryDate] = useState('');
   const [error, setError] = useState(null);
@@ -29,33 +29,27 @@ export function Onboarding() {
 
   return (
     <div className="stack stack--loose">
-      <div className="text-center stack">
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <Lumi size={96} state="waving" title="Lumi, your recovery guide" />
+      <header className="hero">
+        <div className="hero__art">
+          <Lumi size={128} state="waving" title="Lumi, your recovery guide" />
         </div>
-        <h1>Hi, I'm Lumi</h1>
-        <p className="text-muted">
+        <h1 className="hero__title">Hi, I'm Lumi</h1>
+        <p className="hero__lede">
           I'll help you track how you're recovering - twice a day, about two minutes each time.
         </p>
-      </div>
+      </header>
 
-      <Card>
-        <div className="field">
-          <label className="field__label" htmlFor={dateId}>
-            When did your concussion happen?
-          </label>
-          <span className="field__hint">
-            An approximate date is fine. This helps put your symptoms in context against typical
-            recovery patterns.
-          </span>
-          <input
-            id={dateId}
-            type="date"
-            className="date-input"
+      <Card variant={['feature', 'accent']}>
+        <Lumi size={190} state="thinking" className="lumi-deco lumi-deco--br" />
+        <div className="stack stack--tight">
+          <DatePicker
+            label="When did your concussion happen?"
+            hint="An approximate date is fine."
             max={today}
             value={injuryDate}
-            onChange={(event) => {
-              setInjuryDate(event.target.value);
+            invalid={Boolean(error)}
+            onChange={(next) => {
+              setInjuryDate(next);
               setError(null);
             }}
           />
@@ -73,22 +67,26 @@ export function Onboarding() {
         </div>
       </Card>
 
-      <Card title="Before you start">
-        <ul className="stack stack--tight text-sm text-muted" style={{ paddingLeft: '1.1rem' }}>
-          <li>
-            <strong style={{ color: 'var(--text)' }}>Your data stays on this device.</strong> There's
-            no account, and nothing is uploaded for you to use MyLumi.
-          </li>
-          <li>
-            <strong style={{ color: 'var(--text)' }}>MyLumi is not a diagnostic tool.</strong> It can
-            show you patterns, but it can't diagnose you or tell you when you'll recover.
-          </li>
-          <li>
-            <strong style={{ color: 'var(--text)' }}>See a healthcare professional</strong> about your
-            symptoms - especially if they're getting worse.
-          </li>
-        </ul>
-      </Card>
+      <div className="grid grid--2">
+        <Card variant="feature">
+          <Lumi size={150} state="resting" className="lumi-deco lumi-deco--br" />
+          <div className="stack stack--tight">
+            <h2 className="card__title">Stays on this device</h2>
+            <p className="text-muted text-sm">
+              No account, and nothing is uploaded for you to use MyLumi.
+            </p>
+          </div>
+        </Card>
+        <Card variant="feature">
+          <Lumi size={150} state="attentive" className="lumi-deco lumi-deco--br" />
+          <div className="stack stack--tight">
+            <h2 className="card__title">See a professional</h2>
+            <p className="text-muted text-sm">
+              Talk to someone about your symptoms, especially if they're getting worse.
+            </p>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -17,6 +17,7 @@
 
 import { Card } from '../ui/Card.jsx';
 import { Button } from '../ui/Button.jsx';
+import { Lumi } from '../lumi/Lumi.jsx';
 import { ConfidenceBadge } from './ConfidenceBadge.jsx';
 import {
   describeMeanSentiment,
@@ -39,10 +40,13 @@ export function SentimentCard({ result, loading, onRevoke }) {
   if (loading && !result) {
     return (
       <Card title="Journal tone">
-        <p className="text-muted text-sm" role="status">
-          Reading your journal entries. This can take up to a minute if the model service hasn't
-          been used in a while.
-        </p>
+        <div className="stack">
+          <p className="text-muted text-sm" role="status">
+            Reading your journal entries. This can take up to a minute if the model service hasn't
+            been used in a while.
+          </p>
+          <RevokeRow onRevoke={onRevoke} />
+        </div>
       </Card>
     );
   }
@@ -54,9 +58,13 @@ export function SentimentCard({ result, loading, onRevoke }) {
   if (!result) {
     return (
       <Card title="Journal tone">
-        <p className="text-muted text-sm">
-          Nothing to show right now. This will fill in the next time your journal entries are read.
-        </p>
+        <div className="stack">
+          <p className="text-muted text-sm">
+            Nothing to show right now. This will fill in the next time your journal entries are
+            read.
+          </p>
+          <RevokeRow onRevoke={onRevoke} />
+        </div>
       </Card>
     );
   }
@@ -69,11 +77,6 @@ export function SentimentCard({ result, loading, onRevoke }) {
       <Card title="Journal tone">
         <div className="stack">
           <p className="text-sm">{result.reason}</p>
-          <p className="text-muted text-xs">
-            {result.offline
-              ? 'Your journal stays on this device and is unaffected.'
-              : "Entries need a few words before they can be scored. Blank or very short entries aren't guessed at."}
-          </p>
           <RevokeRow onRevoke={onRevoke} />
         </div>
       </Card>
@@ -85,7 +88,8 @@ export function SentimentCard({ result, loading, onRevoke }) {
   const segments = buildSentimentSegments(points);
 
   return (
-    <Card title="Journal tone">
+    <Card title="Journal tone" variant="feature">
+      <Lumi size={160} state="reading" className="lumi-deco lumi-deco--bl" />
       <div className="stack">
         <div className="row row--between" style={{ gap: 'var(--space-3)', flexWrap: 'wrap' }}>
           <p className="text-sm">
@@ -101,7 +105,7 @@ export function SentimentCard({ result, loading, onRevoke }) {
         {word && (
           <p className="text-sm">
             On average, what you wrote reads as <strong>{word}</strong>.{' '}
-            <span className="text-muted text-xs">
+            <span className="text-muted text-sm">
               (average {meanSentiment} on a -1 to +1 scale, from {nDays}{' '}
               {nDays === 1 ? 'entry' : 'entries'})
             </span>
@@ -110,31 +114,24 @@ export function SentimentCard({ result, loading, onRevoke }) {
 
         <Sparkline segments={segments} label={describeSentiment(result)} />
 
-        <p className="insight-caveat text-xs">
-          This is a word-list score, not comprehension. It can't read sarcasm, context, or the way
-          you personally phrase things, and a day you wrote little about scores nothing at all.
-          Read it next to your symptom numbers, never instead of them.
-        </p>
-
         <RevokeRow onRevoke={onRevoke} />
       </div>
     </Card>
   );
 }
 
+/* The canonical off-switch. It used to be a backup for the toggle on the Your
+   data page; with that page gone, consent is revoked from where the feature
+   actually appears, so it must render on every branch of this card - including
+   the offline and nothing-to-show ones, where the user can still change their
+   mind. */
 function RevokeRow({ onRevoke }) {
   if (!onRevoke) return null;
   return (
-    <div className="stack stack--tight">
-      <div>
-        <Button variant="secondary" onClick={onRevoke}>
-          Turn off journal analysis
-        </Button>
-      </div>
-      <p className="text-muted text-xs">
-        Turning this off stops any further sending and clears these results from this device.
-        Nothing was kept on the server to delete.
-      </p>
+    <div>
+      <Button variant="secondary" onClick={onRevoke}>
+        Turn off journal analysis
+      </Button>
     </div>
   );
 }

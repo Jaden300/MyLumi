@@ -7,8 +7,7 @@ export function SleepQualityStep({ values, setValue }) {
     <div className="stack stack--loose">
       <RatingScale
         name="sleepQuality"
-        label="How would you rate your sleep?"
-        hint="How restful it felt, regardless of how long it was."
+        label="How restful was your sleep?"
         anchors={SLEEP_QUALITY_ANCHORS}
         value={values.sleepQuality}
         onChange={(value) => setValue('sleepQuality', value)}

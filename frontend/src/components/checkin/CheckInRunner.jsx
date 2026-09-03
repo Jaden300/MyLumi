@@ -32,16 +32,19 @@ export function CheckInRunner({ flow, nightOf, onComplete, onCancel }) {
   const StepComponent = stepRegistry[step?.component];
 
   /* Lumi follows the flow rather than sitting on one face throughout: settling
-     down for the night check-in, waking for the morning one, reading alongside
-     the journal step, and encouraging on the last screen where finishing is the
-     only thing left to do. */
+     down for the night check-in, drowsy on the step where the user is planning
+     their bedtime, waking for the morning one, reading alongside the journal
+     step, and encouraging on the last screen where finishing is the only thing
+     left to do. */
   const lumiState = isLast
     ? 'encouraging'
     : step?.component === 'JournalStep'
       ? 'reading'
-      : flow.kind === 'morning'
-        ? 'waking'
-        : 'resting';
+      : step?.component === 'SleepIntentStep'
+        ? 'sleepy'
+        : flow.kind === 'morning'
+          ? 'waking'
+          : 'resting';
 
   /* Moving between steps swaps the question in place, with no navigation and no
      focus change. A sighted user sees a new question; a screen-reader user gets
@@ -66,7 +69,11 @@ export function CheckInRunner({ flow, nightOf, onComplete, onCancel }) {
     <div className="stack">
       <header className="checkin__header">
         <div className="lumi-row" style={{ marginBottom: 'var(--space-4)' }}>
-          <Lumi size={48} state={lumiState} />
+          {/* Keyed on the state so the face crossfades when it changes, rather
+              than snapping mid-check-in. */}
+          <div className="hero__art checkin__lumi" key={lumiState}>
+            <Lumi size={64} state={lumiState} />
+          </div>
           <div>
             <h1 className="h-size-h2">{flow.title}</h1>
             <p className="text-muted text-sm">{formatNightLabel(nightOf)}</p>
@@ -101,6 +108,10 @@ export function CheckInRunner({ flow, nightOf, onComplete, onCancel }) {
       {/* tabIndex={-1} makes this focusable programmatically but not a tab stop.
           aria-label carries the position so the announcement is "Step 3 of 6",
           not just the question text read out of nowhere. */}
+      {/* The key is on this inner wrapper rather than on the focusable region
+          above it: remounting the element stepRef points at would swap the node
+          out from under the focus effect. This way the animation restarts on
+          every step while the ref target, and the focus it receives, stay put. */}
       <div
         ref={stepRef}
         tabIndex={-1}
@@ -108,7 +119,9 @@ export function CheckInRunner({ flow, nightOf, onComplete, onCancel }) {
         aria-label={`Step ${stepIndex + 1} of ${stepCount}`}
       >
         {StepComponent ? (
-          <StepComponent {...(step?.props ?? {})} values={values} setValue={setValue} />
+          <div key={stepIndex} className="checkin__step-body">
+            <StepComponent {...(step?.props ?? {})} values={values} setValue={setValue} />
+          </div>
         ) : (
           <Banner tone="alert" role="alert">
             This step is unavailable.
@@ -131,8 +144,12 @@ export function CheckInRunner({ flow, nightOf, onComplete, onCancel }) {
         )}
       </div>
 
+      {/* The only cue explaining why Finish is greyed out. Kept, and announced,
+          because a disabled control with no stated reason is a dead end. */}
       {!canAdvance && (
-        <p className="text-muted text-xs text-center">Answer everything above to continue.</p>
+        <p className="text-muted text-sm text-center" role="status">
+          Answer everything above to continue.
+        </p>
       )}
     </div>
   );

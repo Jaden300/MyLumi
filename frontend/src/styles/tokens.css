@@ -72,6 +72,25 @@
   --radius-full: 999px;
   --shadow-card: 0 4px 24px rgba(20, 10, 46, 0.35);
   --content-max: 560px;
+  --content-wide: 1080px;
+
+  /* Ambient background. A flat purple field carries the page now, with the
+     scattered Lumi marks of .lumi-splatter supplying the texture the three-radial
+     mesh used to. One very faint light source is kept so a large display does not
+     band across a perfectly uniform fill. Fixed to the viewport, so scrolling
+     moves content across the light rather than dragging the light along. */
+  --bg-mesh:
+    radial-gradient(1400px 900px at 50% -15%, rgba(109, 40, 217, 0.16), transparent 70%);
+
+  /* Opacity of a single scattered mark in .lumi-splatter. Tuned per theme: the
+     same alpha that reads as a whisper on the dark ground reads as dirt on the
+     near-white one. */
+  --splatter-opacity: 0.055;
+
+  /* Cards that sit on the mesh let a little of it through instead of stamping a
+     solid rectangle over the gradient. */
+  --surface-glass: color-mix(in srgb, var(--surface) 78%, transparent);
+  --glow-accent: 0 0 60px -12px rgba(214, 36, 159, 0.55);
 
   /* Motion */
   --dur-fast: 120ms;
@@ -110,6 +129,18 @@
 
   --shadow-card: 0 4px 20px rgba(76, 29, 149, 0.1);
 
+  /* The same single light source, pulled right down. On a near-white ground the
+     dark-theme alpha reads as bruising rather than as light. */
+  --bg-mesh:
+    radial-gradient(1400px 900px at 50% -15%, rgba(109, 40, 217, 0.07), transparent 70%);
+
+  /* Lower than dark: a mark at 0.055 over near-white looks like a smudge on the
+     screen rather than part of the design. */
+  --splatter-opacity: 0.035;
+
+  --surface-glass: color-mix(in srgb, var(--surface) 82%, transparent);
+  --glow-accent: 0 0 60px -14px rgba(176, 28, 130, 0.35);
+
   color-scheme: light;
 }
 
@@ -140,6 +171,14 @@
     --sev-6: #9f1239;
 
     --shadow-card: 0 4px 20px rgba(76, 29, 149, 0.1);
+
+    --bg-mesh:
+      radial-gradient(1400px 900px at 50% -15%, rgba(109, 40, 217, 0.07), transparent 70%);
+
+    --splatter-opacity: 0.035;
+
+    --surface-glass: color-mix(in srgb, var(--surface) 82%, transparent);
+    --glow-accent: 0 0 60px -14px rgba(176, 28, 130, 0.35);
 
     color-scheme: light;
   }

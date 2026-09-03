@@ -43,9 +43,6 @@ export function StreakRescuePrompt({ nightOf, priorStreak, onRescue }) {
       <Button block variant="secondary" onClick={() => { onRescue(nightOf); setUsed(true); }}>
         Use my streak rescue
       </Button>
-      <p className="text-muted text-xs text-center" style={{ marginTop: 'var(--space-3)' }}>
-        This keeps your streak only. No symptom data is added for that night.
-      </p>
     </Card>
   );
 }

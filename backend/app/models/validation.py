@@ -111,7 +111,17 @@ def walk_forward(episodes: list[Episode]) -> dict:
             naive.append(abs(float(x[t, burden_col]) - float(y[t])))
         used.append(nights[t])
 
-    return {"folds": len(errors), "errors": errors, "naive": naive, "nights": used}
+    return {
+        "folds": len(errors),
+        "errors": errors,
+        "naive": naive,
+        "nights": used,
+        # How many rows the model had trained on at each fold. This is what
+        # turns a list of errors into a learning curve: it shows the error
+        # falling as nights accumulate, which is the evidence for the 7-night
+        # floor drawn from the user's OWN data rather than asserted.
+        "trainSizes": _fold_origins(n_pairs)[: len(errors)],
+    }
 
 
 def conformal_half_width(
@@ -194,6 +204,8 @@ def validate(episodes: list[Episode]) -> dict:
             "beatsNaive": None,
             "coverage": None,
             "targetCoverage": TARGET_COVERAGE,
+            "curve": [],
+            "intervalHalfWidth": None,
             "statement": None,
         }
 
@@ -231,6 +243,8 @@ def validate(episodes: list[Episode]) -> dict:
             "beatsNaive": None,
             "coverage": None,
             "targetCoverage": TARGET_COVERAGE,
+            "curve": [],
+            "intervalHalfWidth": None,
             "statement": None,
         }
 
@@ -246,5 +260,23 @@ def validate(episodes: list[Episode]) -> dict:
         "beatsNaive": beats,
         "coverage": None if coverage is None else round(coverage, 3),
         "targetCoverage": TARGET_COVERAGE,
+        # Per-fold detail, so the UI can draw the record rather than restate the
+        # average. Each point is one genuine out-of-sample prediction: how many
+        # nights it had learned from, how far off it was, and how far off the
+        # naive baseline was on the same night.
+        "curve": [
+            {
+                "trainSize": int(size),
+                "error": round(float(err), 2),
+                "naiveError": (
+                    round(float(result["naive"][i]), 2)
+                    if i < len(result["naive"])
+                    else None
+                ),
+                "nightOf": result["nights"][i] if i < len(result["nights"]) else None,
+            }
+            for i, (size, err) in enumerate(zip(result["trainSizes"], errors))
+        ],
+        "intervalHalfWidth": None if half is None else round(float(half), 2),
         "statement": _statement(skill, beats, folds),
     }

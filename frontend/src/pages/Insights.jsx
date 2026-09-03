@@ -14,6 +14,7 @@ import { InsightsSection } from '../components/insights/InsightsSection.jsx';
 import { WeeklySummaryCard } from '../components/insights/WeeklySummaryCard.jsx';
 import { TrajectoryChart } from '../components/insights/TrajectoryChart.jsx';
 import { JournalSection } from '../components/insights/JournalSection.jsx';
+import { Lumi } from '../components/lumi/Lumi.jsx';
 
 export function Insights() {
   const { isOnboarded } = useLumiData();
@@ -22,16 +23,23 @@ export function Insights() {
 
   return (
     <div className="stack stack--loose">
-      <header className="stack stack--tight">
+      <header className="page-head">
         <h1>Insights</h1>
-        <p className="text-muted text-sm">
-          Patterns from your own check-ins. Nothing here is a diagnosis.
-        </p>
+        <div className="page-head__art hero__art">
+          <Lumi size={84} state="presenting" />
+        </div>
       </header>
 
+      {/* The two full-measure pieces stay full width: a chart squeezed into a
+          half-column loses the resolution that makes it worth showing. */}
       <WeeklySummaryCard />
       <TrajectoryChart />
-      <InsightsSection variant="full" />
+
+      {/* The findings pack into columns. InsightsSection renders a fragment of
+          sibling cards, so the grid wraps it rather than living inside it. */}
+      <div className="grid grid--auto grid--loose">
+        <InsightsSection variant="full" />
+      </div>
 
       {/* Last: the secondary signal sits below the numbers it must never
           outrank. See SentimentCard. */}

@@ -1533,3 +1533,114 @@
 
 .driver__weight-fill--increases { background: var(--sev-4); }
 .driver__weight-fill--decreases { background: var(--positive); }
+
+/* --- Symptom heatmap ------------------------------------------------------ */
+
+/* Nine rows is tall enough that on a narrow screen the chart wants to scroll
+   sideways rather than shrink its cells into invisibility. The wrapper scrolls,
+   the page never does. */
+.heatmap-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.heatmap {
+  display: block;
+  width: 100%;
+  min-width: 320px;
+  height: auto;
+  overflow: visible;
+}
+
+.heatmap__label {
+  fill: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 8px;
+}
+
+.heatmap__axis {
+  fill: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 7px;
+}
+
+.heatmap__cell {
+  stroke: none;
+}
+
+/* A night nobody logged. Hatched rather than blank, so it reads as "no data"
+   instead of "a zero" - the same distinction the trajectory chart makes by
+   breaking its line. */
+.heatmap__cell--empty {
+  fill: var(--surface-raised);
+  opacity: 0.55;
+}
+
+.heatmap__key {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.heatmap__swatch {
+  display: inline-block;
+  width: 12px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+/* --- Learning curve ------------------------------------------------------- */
+
+.learning-curve {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.curve__model {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The baseline is deliberately quieter and dashed - it is the thing being
+   compared against, not a second finding. */
+.curve__naive {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.8;
+}
+
+.curve__dot {
+  fill: var(--accent);
+}
+
+/* Shading between the two lines. Which side is on top carries the meaning;
+   colour only confirms it. */
+.curve__region {
+  stroke: none;
+  opacity: 0.18;
+}
+
+.curve__region--better { fill: var(--positive); }
+.curve__region--worse { fill: var(--caution); }
+
+.curve__swatch {
+  display: inline-block;
+  width: 10px;
+  height: 2px;
+  border-radius: 1px;
+  margin: 0 var(--space-1) 0 var(--space-2);
+  vertical-align: middle;
+}
+
+.curve__swatch--model { background: var(--accent); }
+.curve__swatch--naive { background: var(--text-muted); }

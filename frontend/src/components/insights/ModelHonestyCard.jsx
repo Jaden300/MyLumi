@@ -14,6 +14,7 @@
    only the nights before it. */
 
 import { Card } from '../ui/Card.jsx';
+import { LearningCurve } from './LearningCurve.jsx';
 
 /* Bar lengths are relative to the worse of the two errors, so the comparison
    fills the width whichever way it goes. */
@@ -33,6 +34,7 @@ export function ModelHonestyCard({ validation }) {
     beatsNaive,
     coverage,
     targetCoverage,
+    curve,
     statement,
   } = validation;
 
@@ -84,6 +86,8 @@ export function ModelHonestyCard({ validation }) {
             </p>
           </div>
         )}
+
+        <LearningCurve curve={curve} />
 
         {Number.isFinite(coverage) && (
           <div className="stack stack--tight">

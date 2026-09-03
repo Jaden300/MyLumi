@@ -15,7 +15,6 @@
 
 import { Card } from '../ui/Card.jsx';
 import { Button } from '../ui/Button.jsx';
-import { Link } from 'react-router-dom';
 
 export function JournalConsentPrompt({ onGrant }) {
   return (
@@ -36,9 +35,6 @@ export function JournalConsentPrompt({ onGrant }) {
             Turn on journal analysis
           </Button>
         </div>
-        <p className="text-muted text-xs">
-          You can turn this off again at any time on <Link to="/data">Your data</Link>.
-        </p>
       </div>
     </Card>
   );

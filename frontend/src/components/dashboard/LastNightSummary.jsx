@@ -34,9 +34,10 @@ export function LastNightSummary({ entry }) {
       </div>
 
       {/* Wall-clock sleep maths is an hour out across a daylight-saving change.
-          Say so rather than quietly reporting a wrong duration. */}
+          Say so rather than quietly reporting a wrong duration - this is a
+          correctness note about the number shown, not explanatory chrome. */}
       {duration != null && hasDstShift(entry) && (
-        <p className="text-muted text-xs" style={{ marginTop: 'var(--space-4)' }}>
+        <p className="text-muted text-sm" style={{ marginTop: 'var(--space-4)' }}>
           The clocks changed this night, so this duration may be off by an hour.
         </p>
       )}

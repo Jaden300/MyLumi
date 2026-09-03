@@ -3,6 +3,7 @@ import { useLumiData } from '../hooks/useLumiData.jsx';
 import { HistoryDayRow } from '../components/history/HistoryDayRow.jsx';
 import { SymptomHeatStrip } from '../components/history/SymptomHeatStrip.jsx';
 import { Card } from '../components/ui/Card.jsx';
+import { Lumi } from '../components/lumi/Lumi.jsx';
 import { currentNightOf } from '../lib/dates.js';
 
 export function History() {
@@ -21,17 +22,33 @@ export function History() {
 
   return (
     <div className="stack stack--loose">
-      <header className="stack stack--tight">
-        <h1>History</h1>
-        <p className="text-muted text-sm">
-          {loggedCount === 0
-            ? 'No entries yet.'
-            : `${loggedCount} of ${entries.length} nights logged since your injury.`}
-        </p>
+      <header className="page-head">
+        <div className="stack stack--tight">
+          <h1>History</h1>
+          {loggedCount > 0 && (
+            <p className="text-muted text-sm">
+              {loggedCount} of {entries.length} nights logged since your injury.
+            </p>
+          )}
+        </div>
+        {loggedCount > 0 && (
+          <div className="page-head__art hero__art">
+            <Lumi size={72} state="reading" />
+          </div>
+        )}
       </header>
 
-      {loggedCount > 0 && (
-        <Card title="Symptom burden">
+      {loggedCount === 0 ? (
+        <Card variant="feature">
+          <Lumi size={200} state="empty" className="lumi-deco lumi-deco--tr" />
+          <div className="stack stack--tight">
+            <h2 className="card__title">Nothing logged yet</h2>
+            <p className="text-muted">Your first check-in starts this record.</p>
+          </div>
+        </Card>
+      ) : (
+        <Card title="Symptom burden" variant={['feature', 'accent']}>
+          <Lumi size={190} state="presenting" className="lumi-deco lumi-deco--br" />
           <SymptomHeatStrip entries={entries} />
         </Card>
       )}

@@ -19,6 +19,7 @@
 
 import { Link } from 'react-router-dom';
 import { Card } from '../ui/Card.jsx';
+import { Lumi } from '../lumi/Lumi.jsx';
 import { useLumiData } from '../../hooks/useLumiData.jsx';
 import { buildTrajectorySeries, describeTrajectory } from '../../lib/trajectory.js';
 import { severityToken, severityLevel } from '../../lib/severity.js';
@@ -65,7 +66,8 @@ export function TrajectoryChart() {
       : null;
 
   return (
-    <Card title="Recovery trajectory">
+    <Card title="Recovery trajectory" variant="feature">
+      <Lumi size={150} state="thinking" className="lumi-deco lumi-deco--tr" />
       <div className="stack">
         <svg
           className="trajectory"
@@ -140,18 +142,11 @@ export function TrajectoryChart() {
           </text>
         </svg>
 
-        <p className="text-muted text-xs">
-          Each dot is one night's symptom burden; the line is a 7-night average. The line breaks
-          where nights weren't logged. <Link to="/history">See all history</Link>
-        </p>
-
-        {/* Population context as text, never as a second line on the chart. A
-            curve to compare against invites "am I behind?", which is staging
-            someone's recovery - see lib/trajectory.js. */}
-        <p className="insight-context text-xs">
-          Symptoms often peak around days 3-5, and most people improve substantially within about
-          four weeks. This is general population data, not a prediction about you.
-        </p>
+        <div>
+          <Link to="/history" className="btn btn--secondary">
+            See all history
+          </Link>
+        </div>
       </div>
     </Card>
   );

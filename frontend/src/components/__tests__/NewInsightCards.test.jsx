@@ -226,3 +226,88 @@ describe('RecoveryStateCard', () => {
     expect(container.textContent).not.toContain('undefined');
   });
 });
+
+/* --- the two dense charts ------------------------------------------------- */
+
+import { SymptomHeatmap } from '../insights/SymptomHeatmap.jsx';
+import { LearningCurve } from '../insights/LearningCurve.jsx';
+
+const grid = {
+  nights: ['2026-01-01', '2026-01-02', '2026-01-05', '2026-01-06'],
+  keys: ['headache', 'photophobia', 'phonophobia', 'brainFog', 'nausea',
+         'dizziness', 'fatigue', 'moodDisturbance', 'concentration'],
+  labels: ['headache', 'light sensitivity', 'noise sensitivity', 'brain fog', 'nausea',
+           'dizziness', 'fatigue', 'irritability or low mood', 'trouble concentrating'],
+  // 9 rows x 4 nights.
+  values: Array.from({ length: 9 }, (_, r) => [r % 7, (r + 1) % 7, (r + 2) % 7, (r + 3) % 7]),
+};
+
+const curve = [
+  { trainSize: 6, error: 5.0, naiveError: 8.0, nightOf: '2026-01-08' },
+  { trainSize: 7, error: 4.2, naiveError: 3.1, nightOf: '2026-01-09' },
+  { trainSize: 8, error: 3.6, naiveError: 6.4, nightOf: '2026-01-10' },
+  { trainSize: 9, error: 2.9, naiveError: 5.2, nightOf: '2026-01-11' },
+  { trainSize: 10, error: 2.4, naiveError: 4.8, nightOf: '2026-01-12' },
+];
+
+describe('SymptomHeatmap', () => {
+  it('draws a cell for every symptom on every day in the span', () => {
+    const { container } = render(<SymptomHeatmap grid={grid} />);
+    // 9 symptoms x 6 calendar days (Jan 1-6, two of them unlogged).
+    expect(container.querySelectorAll('.heatmap__cell').length).toBe(54);
+  });
+
+  /* The gap rule, at the point a user sees it: unlogged nights keep their
+     column instead of the chart closing up and pretending the month was dense. */
+  it('marks unlogged nights rather than closing the gap', () => {
+    const { container } = render(<SymptomHeatmap grid={grid} />);
+    // Jan 3 and Jan 4 were never logged: 9 symptoms x 2 days.
+    expect(container.querySelectorAll('.heatmap__cell--empty').length).toBe(18);
+  });
+
+  it('describes its shape for a screen reader instead of reading out cells', () => {
+    const { container } = render(<SymptomHeatmap grid={grid} />);
+    const label = container.querySelector('svg').getAttribute('aria-label');
+    expect(label).toContain('nine symptoms');
+    expect(label).toContain('4 logged nights');
+  });
+
+  it('renders nothing without enough nights to be a chart', () => {
+    for (const g of [undefined, null, { nights: [], values: [] }, { ...grid, nights: ['2026-01-01'] }]) {
+      const { container, unmount } = render(<SymptomHeatmap grid={g} />);
+      expect(container.textContent).toBe('');
+      unmount();
+    }
+  });
+});
+
+describe('LearningCurve', () => {
+  it('plots one point per out-of-sample check', () => {
+    const { container } = render(<LearningCurve curve={curve} />);
+    expect(container.querySelectorAll('.curve__dot').length).toBe(5);
+    expect(container.querySelector('.curve__model')).toBeTruthy();
+    expect(container.querySelector('.curve__naive')).toBeTruthy();
+  });
+
+  /* The point of the shading: a model that wins on average but loses often is
+     a different thing from one that wins consistently, and the chart has to
+     show both sides rather than only the flattering one. */
+  it('shades losses as well as wins', () => {
+    const { container } = render(<LearningCurve curve={curve} />);
+    expect(container.querySelectorAll('.curve__region--better').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.curve__region--worse').length).toBeGreaterThan(0);
+  });
+
+  it('says in its label how often the model actually won', () => {
+    const { container } = render(<LearningCurve curve={curve} />);
+    expect(container.querySelector('svg').getAttribute('aria-label')).toContain('closer on 4 of 5');
+  });
+
+  it('renders nothing with too few checks to show a trend', () => {
+    for (const c of [undefined, null, [], curve.slice(0, 3)]) {
+      const { container, unmount } = render(<LearningCurve curve={c} />);
+      expect(container.textContent).toBe('');
+      unmount();
+    }
+  });
+});

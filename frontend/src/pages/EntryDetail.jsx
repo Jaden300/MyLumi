@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useLumiData } from '../hooks/useLumiData.jsx';
 import { Card } from '../components/ui/Card.jsx';
 import { Button } from '../components/ui/Button.jsx';
+import { Lumi } from '../components/lumi/Lumi.jsx';
 import { formatNightLabel, formatTime12h, formatDuration } from '../lib/dates.js';
 import { deriveSleepDuration, hasDstShift } from '../lib/derive.js';
 import { SYMPTOMS, MAX_SYMPTOM_BURDEN } from '../lib/constants.js';
@@ -24,14 +25,18 @@ export function EntryDetail() {
 
   if (!entry?.night && !entry?.morning) {
     return (
-      <Card>
-        <p className="text-muted">Nothing was logged for this night.</p>
-        <div style={{ marginTop: 'var(--space-4)' }}>
+      <div className="hero">
+        <div className="hero__art">
+          <Lumi size={120} state="lost" />
+        </div>
+        <h1 className="hero__title">Nothing logged</h1>
+        <p className="hero__lede">This night stayed empty.</p>
+        <div style={{ marginTop: 'var(--space-3)' }}>
           <Button variant="secondary" onClick={() => navigate('/history')}>
             Back to history
           </Button>
         </div>
-      </Card>
+      </div>
     );
   }
 
@@ -50,51 +55,54 @@ export function EntryDetail() {
         )}
       </header>
 
-      {night && (
-        <Card title="Symptoms">
-          {SYMPTOMS.map((symptom) => (
-            <Row
-              key={symptom.key}
-              label={symptom.label}
-              value={
-                Number.isFinite(night.symptoms?.[symptom.key])
-                  ? `${night.symptoms[symptom.key]} / 6`
-                  : null
-              }
-            />
-          ))}
-        </Card>
-      )}
-
-      <Card title="Sleep">
-        <Row label="Planned bedtime" value={formatTime12h(night?.sleep?.plannedBedtime)} />
-        <Row label="Woke at" value={formatTime12h(morning?.wakeTime)} />
-        <Row label="Time asleep" value={formatDuration(duration)} />
-        <Row label="Times woken" value={morning?.awakenings} />
-        <Row
-          label="Sleep quality"
-          value={Number.isFinite(morning?.sleepQuality) ? `${morning.sleepQuality} / 6` : null}
-        />
-        <Row label="Pre-sleep stress" value={night?.sleep?.preSleepStress ? `${night.sleep.preSleepStress} / 5` : null} />
-        <Row label="Sleep aid" value={night?.sleep ? (night.sleep.sleepAidUsed ? 'Yes' : 'No') : null} />
-        {duration != null && hasDstShift(entry) && (
-          <p className="text-muted text-xs" style={{ marginTop: 'var(--space-3)' }}>
-            The clocks changed this night, so this duration may be off by an hour.
-          </p>
+      <div className="grid grid--2">
+        {night && (
+          <Card title="Symptoms">
+            {SYMPTOMS.map((symptom) => (
+              <Row
+                key={symptom.key}
+                label={symptom.label}
+                value={
+                  Number.isFinite(night.symptoms?.[symptom.key])
+                    ? `${night.symptoms[symptom.key]} / 6`
+                    : null
+                }
+              />
+            ))}
+          </Card>
         )}
-      </Card>
 
-      {morning && (
-        <Card title="The next morning">
-          <Row label="Mood" value={Number.isFinite(morning.moodMorning) ? `${morning.moodMorning} / 6` : null} />
-          <Row label="Energy" value={Number.isFinite(morning.energy) ? `${morning.energy} / 6` : null} />
-          <Row label="Readiness" value={Number.isFinite(morning.readiness) ? `${morning.readiness} / 6` : null} />
-          <Row label="Remembered dreams" value={morning.dreamRecall ? 'Yes' : 'No'} />
+        <Card title="Sleep">
+          <Row label="Planned bedtime" value={formatTime12h(night?.sleep?.plannedBedtime)} />
+          <Row label="Woke at" value={formatTime12h(morning?.wakeTime)} />
+          <Row label="Time asleep" value={formatDuration(duration)} />
+          <Row label="Times woken" value={morning?.awakenings} />
+          <Row
+            label="Sleep quality"
+            value={Number.isFinite(morning?.sleepQuality) ? `${morning.sleepQuality} / 6` : null}
+          />
+          <Row label="Pre-sleep stress" value={night?.sleep?.preSleepStress ? `${night.sleep.preSleepStress} / 5` : null} />
+          <Row label="Sleep aid" value={night?.sleep ? (night.sleep.sleepAidUsed ? 'Yes' : 'No') : null} />
+          {duration != null && hasDstShift(entry) && (
+            <p className="text-muted text-sm" style={{ marginTop: 'var(--space-3)' }}>
+              The clocks changed this night, so this duration may be off by an hour.
+            </p>
+          )}
         </Card>
-      )}
+
+        {morning && (
+          <Card title="The next morning">
+            <Row label="Mood" value={Number.isFinite(morning.moodMorning) ? `${morning.moodMorning} / 6` : null} />
+            <Row label="Energy" value={Number.isFinite(morning.energy) ? `${morning.energy} / 6` : null} />
+            <Row label="Readiness" value={Number.isFinite(morning.readiness) ? `${morning.readiness} / 6` : null} />
+            <Row label="Remembered dreams" value={morning.dreamRecall ? 'Yes' : 'No'} />
+          </Card>
+        )}
+      </div>
 
       {(night?.journal?.day || night?.journal?.factors || morning?.journal?.wakeFeeling) && (
-        <Card title="Your notes">
+        <Card title="Your notes" variant="feature">
+          <Lumi size={170} state="reading" className="lumi-deco lumi-deco--br" />
           <div className="stack">
             {night?.journal?.day && <JournalNote label="That day" text={night.journal.day} />}
             {night?.journal?.factors && (
@@ -117,7 +125,7 @@ export function EntryDetail() {
 function JournalNote({ label, text }) {
   return (
     <div className="stack stack--tight">
-      <span className="text-muted text-xs">{label}</span>
+      <span className="stat__label">{label}</span>
       <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>
         {text}
       </p>

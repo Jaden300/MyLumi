@@ -12,6 +12,7 @@
 
 import { Card } from '../ui/Card.jsx';
 import { Stat } from '../ui/Stat.jsx';
+import { Lumi } from '../lumi/Lumi.jsx';
 import { useLumiData } from '../../hooks/useLumiData.jsx';
 import { buildWeeklySummary, MIN_NIGHTS } from '../../lib/weekly.js';
 import { formatShortDate, prevDay, toLocalISODate } from '../../lib/dates.js';
@@ -44,7 +45,8 @@ export function WeeklySummaryCard() {
     summary;
 
   return (
-    <Card title="This week">
+    <Card title="This week" variant="feature">
+      <Lumi size={140} state="presenting" className="lumi-deco lumi-deco--br" />
       <div className="stack">
         <div className="row" style={{ gap: 'var(--space-6)', flexWrap: 'wrap' }}>
           <Stat
@@ -97,14 +99,10 @@ export function WeeklySummaryCard() {
         )}
 
         {deltaVsPriorWeek === null && (
-          <p className="text-muted text-xs">
+          <p className="text-muted text-sm">
             Not enough entries in the week before this one to compare against.
           </p>
         )}
-
-        <p className="text-muted text-xs">
-          A description of what you logged, not an assessment of your recovery.
-        </p>
       </div>
     </Card>
   );

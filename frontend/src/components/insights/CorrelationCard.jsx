@@ -8,18 +8,18 @@
      11 nights" is what lets a reader judge the claim for themselves. */
 
 import { Card } from '../ui/Card.jsx';
+import { Lumi } from '../lumi/Lumi.jsx';
 import { ConfidenceBadge } from './ConfidenceBadge.jsx';
 
 export function CorrelationCard({ correlation }) {
   if (!correlation?.available || !correlation.findings?.length) return null;
 
   return (
-    <Card title="Your patterns">
+    <Card title="Your patterns" variant="feature">
+      <Lumi size={170} state="presenting" className="lumi-deco lumi-deco--tl" />
       <div className="stack">
         <div className="row row--between" style={{ alignItems: 'flex-start' }}>
-          <span className="text-muted text-xs">
-            Found in your own check-ins
-          </span>
+          <span className="stat__label">Found in your own check-ins</span>
           <ConfidenceBadge confidence={correlation.confidence} nDays={correlation.nDays} />
         </div>
 
@@ -36,11 +36,6 @@ export function CorrelationCard({ correlation }) {
             </li>
           ))}
         </ul>
-
-        <p className="text-muted text-xs">
-          These are associations in your data, not causes. Many things affect
-          symptoms, and MyLumi only sees what you tell it.
-        </p>
       </div>
     </Card>
   );

@@ -25,7 +25,7 @@ export function StreakCard({ streak, nightDone, morningDue }) {
           <strong>{current === 1 ? 'night logged' : 'nights logged'} in a row</strong>
           <span className="text-muted text-sm">{hint}</span>
           {longest > current && (
-            <span className="text-muted text-xs">Your best run so far is {longest}.</span>
+            <span className="text-muted text-sm">Best so far: {longest}</span>
           )}
         </div>
       </div>

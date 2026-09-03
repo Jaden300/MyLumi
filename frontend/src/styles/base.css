@@ -16,7 +16,8 @@ html {
 
 body {
   min-height: 100vh;
-  background: var(--bg);
+  background: var(--bg-mesh), var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   font-family: var(--font-body);
   font-size: var(--fs-body);
@@ -65,10 +66,20 @@ textarea {
   color: inherit;
 }
 
+/* Links that live inside a sentence. Standalone navigation affordances wear
+   .btn instead - see docs/design-system.md. The underline is held back to a tint
+   so it does not cut through the text at rest, and comes up to full strength on
+   hover, which gives an inline link a hover state it did not have before. */
 a {
   color: var(--accent);
+  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
   text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+a:hover {
+  text-decoration-color: var(--accent);
 }
 
 /* Visible focus on every interactive element - never removed without replacement */

@@ -5,12 +5,12 @@
    Callers pass the dash; this component does not invent one, because deciding
    that a missing value should display as something is the caller's judgement. */
 
-export function Stat({ label, value, note }) {
+export function Stat({ label, value, note, size = 'md' }) {
   return (
-    <div className="stack stack--tight">
-      <span className="text-muted text-xs">{label}</span>
-      <strong style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>{value}</strong>
-      {note && <span className="text-muted text-xs">{note}</span>}
+    <div className="stat stack stack--tight">
+      <span className="stat__label">{label}</span>
+      <strong className={`stat__value stat__value--${size}`}>{value}</strong>
+      {note && <span className="stat__note">{note}</span>}
     </div>
   );
 }

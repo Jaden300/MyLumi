@@ -89,7 +89,7 @@ export function DailyReport({ entry, entries, onDone }) {
           )}
 
           {duration != null && hasDstShift(entry) && (
-            <p className="text-muted text-xs">
+            <p className="text-muted text-sm">
               The clocks changed this night, so this duration may be off by an hour.
             </p>
           )}
@@ -109,9 +109,11 @@ export function DailyReport({ entry, entries, onDone }) {
         <Button block onClick={onDone}>
           Back to today
         </Button>
-        <p className="text-center text-xs text-muted">
-          <Link to="/insights">See your insights</Link>
-        </p>
+        {/* Blocked to match the primary above it, so the two read as one pair of
+            choices rather than a button with an afterthought under it. */}
+        <Link to="/insights" className="btn btn--secondary btn--block">
+          See your insights
+        </Link>
       </div>
     </div>
   );

@@ -10,7 +10,6 @@ export function SleepIntentStep({ values, setValue }) {
     <div className="stack stack--loose">
       <TimePicker
         label="What time do you plan to go to sleep?"
-        hint="An estimate is fine."
         value={values.sleep?.plannedBedtime}
         onChange={(value) => setValue('sleep.plannedBedtime', value)}
       />
