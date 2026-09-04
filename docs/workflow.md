@@ -64,7 +64,7 @@ alongside lint, tests and the build.
 ## How docs/ is organized
 
 - `docs/workflow.md` - this file. Conventions and process.
-- `docs/plan.md` - the project plan (source: `MyLumi_Plan.md`). The build plan there is *tentative*.
+- `docs/plan.md` - the project plan (source: `MyLumi_Plan.md`, which is gitignored and so is not in a fresh clone). The build plan there is *tentative*.
 - Add focused docs as the build grows (e.g. `docs/data-schema.md`, `docs/render-architecture.md`, `docs/design-system.md`, `docs/responsible-ai.md`). One concern per file.
 - Keep a running task list with checkboxes - either in the relevant doc or a `docs/tasks.md`.
 

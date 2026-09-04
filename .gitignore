@@ -13,3 +13,16 @@ __pycache__/
 
 # ...but the template is committed, since it documents the contract.
 !.env.example
+
+# Planning notes - kept locally, not published.
+#
+# MyLumi_Plan.md is the original project plan. The code still cites it by
+# section ("MyLumi_Plan.md 3.3c") in about twenty places, because those
+# citations record *why* a model behaves the way it does and that reasoning did
+# not move anywhere. They now point at a file only the team has, which is the
+# intended trade: the comments stay accurate for us, and the plan stays private.
+MyLumi_Plan.md
+
+# Agent scratch plans, wherever a tool decides to put them.
+.claude/plans/
+*.plan.md

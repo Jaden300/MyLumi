@@ -27,4 +27,9 @@ Read the relevant one before working in that area - don't load them all.
 - `@docs/stack.md` - stack decisions
 - `@docs/workflow.md` - how we work, doc conventions
 - `@docs/tasks.md` - checkbox task list
-- `@MyLumi_Plan.md` - full project plan (build order is tentative)
+
+`MyLumi_Plan.md` is the full project plan (build order is tentative). It is
+gitignored rather than committed, so it is present for us and absent from a
+fresh clone. Source comments still cite it by section; read it if you have it,
+and treat a citation as a pointer to reasoning rather than a broken link if you
+do not.

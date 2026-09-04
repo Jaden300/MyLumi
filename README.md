@@ -231,7 +231,6 @@ than a spinner that looks broken. During the event, an external cron job
 | `docs/design-system.md` | Colour, type, spacing, component conventions |
 | `docs/stack.md` | Stack decisions and the Render setup |
 | `docs/tasks.md` | Build progress |
-| `MyLumi_Plan.md` | The original project plan |
 
 ---
 
