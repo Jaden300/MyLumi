@@ -141,12 +141,43 @@ export const JOINT_PAIRS = {
 /* How much weight the second-ranked bone needs before a hit counts as being on
    the joint rather than on the limb.
 
-   PROVISIONAL - this is the one constant here set by reasoning rather than by
-   measurement, because it depends on how the model's weights were painted.
-   Tight weighting may never reach it, putting knees and elbows out of reach;
-   soft weighting may fire it halfway up the forearm. Tune against the real
-   model, then delete this paragraph and say what it was measured at. */
+   Measured against the shipped model rather than guessed. That model turns out
+   not to use this path at all: 94% of its vertices bind to a single bone, and
+   no vertex anywhere blends an upper and lower limb bone, because its joints
+   are modelled as separate ball spheres rather than painted as smooth weights.
+   Its only real blends are Spine1|Spine2 and Shoulder|Spine2, both peaking
+   around 0.50 and 0.485.
+
+   0.35 is kept because it still does useful work on a smoothly weighted rig,
+   which many models are, and because it sits comfortably below those measured
+   maxima without being so low that a limb reads as a joint. Models like the
+   shipped one reach their joints through JOINT_MESH_BONES instead. */
 export const JOINT_BLEND_MIN = 0.35;
+
+/* Joints on a model whose weights cannot express them.
+
+   A mannequin with visible ball joints keeps those spheres in their own mesh,
+   each one rigidly bound to a single bone. That mesh identity carries exactly
+   the information the skin weights do not: a hit on the joints mesh weighted to
+   the forearm is the elbow, not the forearm.
+
+   Keyed by the bone that owns the sphere. Only the bones whose ball sits at a
+   joint a person would name appear here - a hit on the joints mesh at any other
+   bone falls through to the ordinary bone mapping, which is the right answer
+   for it anyway. */
+export const JOINT_MESH_BONES = {
+  LeftForeArm: 'elbow_l',
+  RightForeArm: 'elbow_r',
+  LeftLeg: 'knee_l',
+  RightLeg: 'knee_r',
+  LeftUpLeg: 'hip_l',
+  RightUpLeg: 'hip_r',
+};
+
+/* Meshes whose name marks them as joint geometry rather than body surface.
+   Matched case-insensitively as a substring, so `Beta_Joints`, `joints` and
+   `Body_Joint_Spheres` all qualify. */
+export const JOINT_MESH_PATTERN = /joint/i;
 
 /* Front and back cannot come from the rig: one spine bone drives both faces of
    the torso, so a tap on the chest and a tap between the shoulder blades reach

@@ -6,10 +6,22 @@
 
    NOT UNIT TESTED for the same reason as PainBodyModel: jsdom has no WebGL. */
 
-import { useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-import { PainBodyModel } from './PainBodyModel.jsx';
+import { useEffect, useState } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
+import { OrbitControls, useGLTF } from '@react-three/drei';
+import { MODEL_URL, PainBodyModel } from './PainBodyModel.jsx';
+
+/**
+ * Fetch and parse the model, resolving when it is in drei's cache.
+ *
+ * Called by PainBodySurface before it mounts the Canvas - see the long note
+ * there for why that ordering is what makes the canvas render at all. Rejects
+ * if the file is missing or unparseable, which the caller turns into the same
+ * fallback notice as any other failure.
+ */
+export function preloadBodyModel() {
+  return Promise.resolve(useGLTF.preload(MODEL_URL));
+}
 
 /* Lighting is flat and soft on purpose. Hard speculars and strong contrast are
    exactly what a light-sensitive user does not want, and the model is a
@@ -24,8 +36,56 @@ function Lights() {
   );
 }
 
+/* Recover from a lost WebGL context.
+
+   A browser can take the context away at any time - the tab is backgrounded,
+   the GPU resets, another page claims too many contexts - and the canvas then
+   goes blank and stays blank, because the render loop is drawing into nothing.
+   The default behaviour on `webglcontextlost` is to make the loss permanent,
+   so preventDefault() is what allows a restore to ever arrive.
+
+   In development this fires reliably for a second reason. StrictMode mounts,
+   unmounts and remounts every component to surface side effects that are not
+   cleaned up, and R3F's unmount path calls `gl.forceContextLoss()` - correctly,
+   since a leaked context is a real leak - from inside a setTimeout. Under the
+   double-mount that teardown lands AFTER the remount and kills the context the
+   live canvas is drawing with. Production never double-mounts, so this is a
+   dev-only trigger for a failure mode that is nonetheless real in production
+   for its own reasons, which is why it is fixed rather than papered over by
+   turning StrictMode off. */
+function ContextRecovery({ onLost }) {
+  const { gl, invalidate } = useThree();
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+
+    const handleLost = (event) => {
+      // Without this the loss is final and no restore event ever comes.
+      event.preventDefault();
+      onLost(true);
+    };
+
+    const handleRestored = () => {
+      onLost(false);
+      // The scene survived; only the GPU-side resources went away. Ask for a
+      // frame so the canvas repaints immediately rather than on next input.
+      invalidate();
+    };
+
+    canvas.addEventListener('webglcontextlost', handleLost);
+    canvas.addEventListener('webglcontextrestored', handleRestored);
+    return () => {
+      canvas.removeEventListener('webglcontextlost', handleLost);
+      canvas.removeEventListener('webglcontextrestored', handleRestored);
+    };
+  }, [gl, invalidate, onLost]);
+
+  return null;
+}
+
 export function PainBodyCanvas({ onPickRegion }) {
   const [diagnostics, setDiagnostics] = useState(null);
+  const [contextLost, setContextLost] = useState(false);
 
   /* A rig whose bones this app does not recognise produces a body that ignores
      every tap, with no error anywhere - the worst way for this to fail. In dev
@@ -37,7 +97,11 @@ export function PainBodyCanvas({ onPickRegion }) {
   return (
     <div className="pain-surface">
       <Canvas
-        camera={{ position: [0, 0.2, 3.2], fov: 35 }}
+        /* A Mixamo export stands on the ground plane, so its origin is between
+           the feet rather than at its centre. Aiming at 0.95 puts the camera on
+           the chest of a roughly 1.8 unit figure; aiming at the origin would
+           frame the floor. The distance clears a T-pose's full arm span. */
+        camera={{ position: [0, 0.95, 3.4], fov: 35 }}
         dpr={[1, 2]}
         /* The canvas is decorative to assistive tech: everything it can do is
            also reachable from the region list below it, which is labelled and
@@ -46,11 +110,17 @@ export function PainBodyCanvas({ onPickRegion }) {
         aria-hidden="true"
         tabIndex={-1}
       >
+        <ContextRecovery onLost={setContextLost} />
         <Lights />
         <PainBodyModel onPickRegion={onPickRegion} onDiagnostics={setDiagnostics} />
         <OrbitControls
           enableDamping
           dampingFactor={0.08}
+          /* Orbit around the chest, not the origin. The default target is
+             [0,0,0], which for a figure standing on the ground plane means the
+             body swings around its own feet - disorienting, and it throws the
+             head out of frame as soon as you drag. */
+          target={[0, 0.95, 0]}
           // No panning: the body should stay centred, and a user who drags it
           // off screen has no obvious way to recover it.
           enablePan={false}

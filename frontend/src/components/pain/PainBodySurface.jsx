@@ -20,7 +20,7 @@
    PainMapStep remains fully usable in every one of those states, which is why
    this component can afford to fail quietly. */
 
-import { Component, Suspense, lazy } from 'react';
+import { Component, Suspense, lazy, useEffect, useState } from 'react';
 
 const PainBodyCanvas = lazy(() =>
   import('./PainBodyCanvas.jsx').then((m) => ({ default: m.PainBodyCanvas })),
@@ -71,7 +71,67 @@ class CanvasBoundary extends Component {
   }
 }
 
+/**
+ * Load the model BEFORE the canvas mounts, then mount the canvas.
+ *
+ * This ordering is not an optimisation, it is what makes the canvas render at
+ * all in development.
+ *
+ * `useGLTF` suspends while the model downloads. A suspending child causes the
+ * Suspense boundary to unmount and remount its subtree - the Canvas included -
+ * and R3F's unmount path calls `gl.forceContextLoss()` to avoid leaking a WebGL
+ * context. It schedules that teardown in a setTimeout, so it lands after the
+ * remount and destroys the context belonging to the canvas that is now live.
+ * StrictMode's deliberate double-mount makes this happen every time. The result
+ * is a blank canvas, a halted render loop, and a single console line reading
+ * "THREE.WebGLRenderer: Context Lost" - no error, no failed request, and a
+ * scene graph that inspects as completely correct.
+ *
+ * Warming drei's cache first means `useGLTF` resolves immediately, so the
+ * Canvas never suspends, is never torn down, and keeps the context it made.
+ *
+ * The preload lives here rather than at module scope on purpose: at module
+ * scope it would fetch several megabytes for every user who never opens this
+ * step, which is exactly what the code split above exists to prevent.
+ */
+function useModelReady() {
+  const [state, setState] = useState('loading');
+
+  useEffect(() => {
+    let alive = true;
+    import('./PainBodyCanvas.jsx')
+      .then((mod) => Promise.resolve(mod.preloadBodyModel()))
+      .then(() => alive && setState('ready'))
+      .catch(() => alive && setState('failed'));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return state;
+}
+
 export function PainBodySurface(props) {
+  const state = useModelReady();
+
+  if (state === 'failed') {
+    return (
+      <SurfaceNotice
+        hint={
+          import.meta.env.DEV
+            ? 'In development this usually means public/models/body.glb is missing. See the README.'
+            : null
+        }
+      >
+        The 3D body could not load. Use the list below instead.
+      </SurfaceNotice>
+    );
+  }
+
+  if (state === 'loading') {
+    return <SurfaceNotice>Loading the body model...</SurfaceNotice>;
+  }
+
   return (
     <CanvasBoundary>
       <Suspense fallback={<SurfaceNotice>Loading the body model...</SurfaceNotice>}>

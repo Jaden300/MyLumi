@@ -2,7 +2,7 @@
 
    This list is not a fallback bolted on afterwards - it is the primary record
    of what the user has marked, and the 3D body is a faster way to reach it. It
-   stays visible below the canvas for three reasons:
+   stays visible below the canvas for four reasons:
 
      - The body model is one skinned mesh with no keyboard interaction and no
        accessible names, so without this list a keyboard or screen reader user
@@ -10,7 +10,12 @@
      - It is what renders when the model fails to load, on a device with no
        WebGL, or on a connection that never finishes fetching it.
      - Reading back what you just marked, in words, is how you catch marking the
-       wrong side - which is easy to do on a model you have rotated. */
+       wrong side - which is easy to do on a model you have rotated.
+     - Some regions are simply not tappable on some models. A rig can only
+       distinguish what its bones distinguish, and the shipped mannequin binds
+       94% of its vertices to a single bone with no blending at the elbow, knee
+       or hip - so those three, and the back-facing regions, are reachable here
+       and nowhere else. Measured, not assumed: see JOINT_BLEND_MIN. */
 
 import { useState } from 'react';
 import { PainScale } from '../inputs/PainScale.jsx';

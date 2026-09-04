@@ -127,21 +127,31 @@ names never leave the device, and that no generated copy uses causal vocabulary.
 
 ### The 3D body model
 
-The pain map needs a rigged human model, which is not checked in. Download any
-character from [mixamo.com](https://www.mixamo.com) (free Adobe account) as
-**GLB, T-pose, no animation**, and save it to
-`frontend/public/models/body.glb`.
+`frontend/public/models/body.glb` is a Mixamo mannequin (Adobe, free with an
+account), converted from FBX with `FBX2glTF` and checked in at 1.9MB. It is
+gender-neutral and untextured by design - the app tints it to one flat colour,
+because a body diagram someone taps while symptomatic should not also be a
+character.
 
-**Everything works without it.** The model is a faster way to reach the body
-regions, not the only way: the region list below it carries the whole feature,
-and is what renders on a device with no WebGL or when the file is missing. That
-is also the accessibility path, since a WebGL canvas has no keyboard interaction
-of its own.
+Body regions are resolved from the model's **rig**, not from separate per-part
+meshes. A raycast hit carries the three vertex indices of the triangle it struck,
+every vertex is weighted to the bones that move it, and summing those weights
+names the body part. That matters because no pre-segmented body-*region* model
+exists to download: the open anatomical datasets are carved into individual
+femurs and organs, which is not how a person points at where they hurt.
 
-Body regions are resolved from the model's *rig* rather than from separate
-per-part meshes, so any standard humanoid skeleton works. If the bone names are
-not Mixamo's, a dev-mode warning on the canvas names the ones that did not map
-and points at the table to extend.
+Swapping the model is therefore just replacing the file - any standard humanoid
+skeleton works, and all 65 bones of this one map. If a replacement's bones are
+named differently, a dev-mode warning on the canvas lists the ones that did not
+map and points at the table to extend.
+
+**Everything works without the file.** The model is a faster way to reach the
+regions, not the only way. The region list below it carries the whole feature,
+is what renders when WebGL is missing or the file fails to load, and is the only
+way to reach a few regions at all - this model's joints are rigid ball spheres
+with no weight blending, so its elbows, knees and hips are not distinguishable
+by tapping. It is also the accessibility path, since a WebGL canvas has no
+keyboard interaction of its own.
 
 ### Seeing it with data
 

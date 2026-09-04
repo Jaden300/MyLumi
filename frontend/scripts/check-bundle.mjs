@@ -15,7 +15,9 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const DIST = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'dist', 'assets');
+const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
+const DIST = join(ROOT, 'dist', 'assets');
+const INDEX_HTML = join(ROOT, 'dist', 'index.html');
 
 // Strings that only three.js defines. If one appears in the entry chunk, the
 // library was bundled into it.
@@ -47,6 +49,27 @@ if (leaked.length > 0) {
   process.exit(1);
 }
 
+/* The subtler failure, and the one that actually shipped once.
+
+   The three chunk can be absent from the entry chunk's CONTENT while the entry
+   still imports it at the top - which happens when manualChunks sweeps a shared
+   dependency (React, in the case that caught this) into the same chunk. The
+   entry then needs that chunk to boot, so the browser fetches the whole 3D
+   stack on first paint. Every marker check above passes, the chunk listing
+   looks correct, and the split is nonetheless doing nothing. */
+const staticImports = [...source.matchAll(/from\s*["']\.\/([^"']+)["']/g)].map((m) => m[1]);
+const eager = staticImports.filter((f) => f.startsWith('three-'));
+
+if (eager.length > 0) {
+  console.error(
+    `check:bundle - the entry chunk statically imports ${eager.join(', ')}.\n` +
+      '  The browser will fetch the 3D stack on first paint even though the code\n' +
+      '  is split. This usually means manualChunks pulled a shared dependency\n' +
+      '  into the three chunk. Narrow the rule in vite.config.js.',
+  );
+  process.exit(1);
+}
+
 const threeChunk = files.find((f) => f.startsWith('three-'));
 if (!threeChunk) {
   console.error(
@@ -56,4 +79,22 @@ if (!threeChunk) {
   process.exit(1);
 }
 
-console.log(`check:bundle - clean, three.js is isolated in ${threeChunk}.`);
+/* Being absent from the entry chunk is only half of it. Vite emits
+   <link rel="modulepreload"> for lazy chunks by default, and a preload link in
+   index.html makes the browser fetch the whole thing on first paint - so the
+   split still holds structurally while every visitor pays for it anyway. That
+   regression is invisible in the chunk listing and was live until measured. */
+if (existsSync(INDEX_HTML)) {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  if (html.includes(threeChunk)) {
+    console.error(
+      `check:bundle - index.html references ${threeChunk} directly.\n` +
+        '  A preload or script tag makes every visitor download the 3D stack on\n' +
+        '  first paint, which defeats the lazy import. Check `modulePreload` in\n' +
+        '  vite.config.js.',
+    );
+    process.exit(1);
+  }
+}
+
+console.log(`check:bundle - clean, three.js is isolated in ${threeChunk} and not preloaded.`);

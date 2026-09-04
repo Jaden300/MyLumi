@@ -172,10 +172,43 @@ area 0-10 in half steps, review past areas in history.
 - [x] 46 + 18 + 16 + 8 new tests. The 3D components themselves are not unit
       tested - jsdom has no WebGL - which is affordable only because the picking
       logic was extracted out and is covered thoroughly in the node suite.
-- [ ] **Drop in a Mixamo GLB** at `frontend/public/models/body.glb` (free Adobe
-      account, T-pose, no animation). Everything else is done and the app is
-      fully usable without it - the region list carries the whole feature.
-- [ ] Tune `JOINT_BLEND_MIN` against the real model; confirm the bone names map.
+- [x] **The model is in**, converted from the supplied FBX with `FBX2glTF` and
+      checked in at `frontend/public/models/body.glb` (1.9MB). All 65 of its
+      bones map, zero unmapped.
+- [x] Verified end to end in a real browser against the real model: taps on the
+      head, arms, hands, chest, thighs, calves and feet all resolve, with
+      correct anatomical mirroring (screen-left is the model's right).
+
+**What measuring the real model changed.** Three things, none of which could
+have been settled without the file:
+
+1. **`JOINT_BLEND_MIN` turned out not to apply to this model at all.** 94% of
+   its vertices bind to a single bone, and *no* vertex anywhere blends an upper
+   and lower limb bone - its joints are modelled as separate ball spheres, not
+   painted as smooth weights. Its only real blends are `Spine1|Spine2` and
+   `Shoulder|Spine2`, peaking at 0.50 and 0.485. So elbows, knees and hips are
+   not tappable here; they are reachable from the region list, which is now a
+   fourth reason that list exists rather than only an accessibility fallback.
+   The constant is kept at 0.35 for rigs that are smoothly weighted.
+2. **The model faces +Z, confirmed rather than assumed.** The head is too
+   near-spherical to tell (0.123 vs 0.126 either side of the midline); the feet
+   are not - toes reach +0.172 while the heel stops at -0.078.
+3. **A Mixamo figure stands on the ground plane**, so its origin is between the
+   feet. The camera and the orbit target both had to aim at chest height; the
+   defaults would have framed the floor and swung the body around its own feet.
+
+**Two bugs found by running it, both invisible in review:**
+
+1. **`scene.clone()` silently breaks a skinned mesh.** The copy keeps pointing
+   at the original skeleton's bones, so it renders nothing - no error, no
+   warning, and a scene graph that inspects as entirely correct.
+   `SkeletonUtils.clone` is the fix and is the reason that helper exists.
+2. **A suspending `useGLTF` cost the canvas its WebGL context.** The Suspense
+   boundary remounts the Canvas, R3F's unmount calls `forceContextLoss()` on a
+   `setTimeout`, and that teardown lands after the remount and kills the live
+   context - StrictMode makes it happen every time. Symptom: a blank canvas and
+   one console line. Fixed by loading the model before the canvas mounts, so it
+   never suspends.
 
 **Two bugs the tests caught before the model existed**, both of the silent kind:
 
@@ -212,11 +245,25 @@ headline sleep-duration correlation still clears it at rho = -0.68, and **no
 pain finding was returned** - the features were tested and correctly rejected on
 data where pain follows symptom burden rather than predicting it.
 
-**On the bundle.** three.js is ~980KB, larger than the app itself, and reached
+**On the bundle.** three.js is ~725KB, larger than the app itself, and reached
 from one step. It loads behind a `React.lazy` boundary - the app's only code
-split - into its own named chunk. `npm run check:bundle` fails the build if it
-ever leaks into the entry chunk, because that regression breaks nothing visible:
-the app keeps working, every page just gets slower.
+split - into its own named chunk. `npm run check:bundle` fails the build if that
+regresses, because the regression breaks nothing visible: the app keeps working,
+every page just gets slower.
+
+That check had to be strengthened twice, because the split was silently broken
+in two ways that the obvious assertion missed:
+
+- Vite emits `<link rel="modulepreload">` for lazy chunks by default, so
+  `index.html` told every visitor to download the 3D stack on first paint.
+- `manualChunks` matching `@react-three/*` swept **React** into the three chunk,
+  which forced the entry bundle to import it statically. The chunk listing still
+  looked perfect.
+
+Both were found by watching the network on the dashboard rather than by reading
+the build output, and both are now assertions. Verified: nothing 3D is fetched
+on the dashboard, insights, history or about - the chunk and the model arrive
+only on reaching the pain step.
 
 ## Phase 4 - Insights & Responsible AI ✅
 

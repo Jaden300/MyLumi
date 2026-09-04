@@ -24,6 +24,7 @@
 
 import {
   JOINT_BLEND_MIN,
+  JOINT_MESH_BONES,
   JOINT_PAIRS,
   TORSO_FRONT_BACK,
   regionForBone,
@@ -97,10 +98,19 @@ export function rankInfluences(face, skinIndex, skinWeight, boneNames) {
  *   axis: positive is the front of the body, negative the back. Omit when
  *   unknown - the torso then falls back to its bone's default region.
  */
-export function resolveRegionFromBones(ranked, facing = 0) {
+export function resolveRegionFromBones(ranked, facing = 0, onJointMesh = false) {
   if (!ranked?.length) return null;
 
   const [top, second] = ranked;
+
+  /* A hit on the model's joint geometry, where the model has any. Checked first
+     because it is the most specific evidence available: the mesh was authored
+     as a joint, so a sphere rigidly bound to the forearm is the elbow, and no
+     amount of weight inspection would ever say so. */
+  if (onJointMesh) {
+    const joint = JOINT_MESH_BONES[top.name];
+    if (joint) return joint;
+  }
 
   /* Two bones both strongly influencing the hit means it landed on the joint
      between them, which has no bone of its own. Sorted key so the lookup does
@@ -135,6 +145,10 @@ export function resolveRegionFromBones(ranked, facing = 0) {
  * bones this app has never heard of. The caller must treat it as "no region was
  * identified" and write nothing, never as a default region.
  */
-export function pickRegion(face, skinIndex, skinWeight, boneNames, facing = 0) {
-  return resolveRegionFromBones(rankInfluences(face, skinIndex, skinWeight, boneNames), facing);
+export function pickRegion(face, skinIndex, skinWeight, boneNames, facing = 0, onJointMesh = false) {
+  return resolveRegionFromBones(
+    rankInfluences(face, skinIndex, skinWeight, boneNames),
+    facing,
+    onJointMesh,
+  );
 }

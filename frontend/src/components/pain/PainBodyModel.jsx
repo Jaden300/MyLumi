@@ -10,9 +10,10 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
 import { pickRegion } from '../../lib/painPicking.js';
-import { normalizeBoneName, regionForBone } from '../../lib/painRegions.js';
+import { JOINT_MESH_PATTERN, normalizeBoneName, regionForBone } from '../../lib/painRegions.js';
 
 export const MODEL_URL = '/models/body.glb';
 
@@ -46,9 +47,16 @@ export function PainBodyModel({ onPickRegion, onDiagnostics }) {
 
      Built during the memo rather than mutated in an effect: the loaded scene is
      shared by useGLTF's cache, so assigning onto its materials would leak into
-     every other mount of the same model. */
+     every other mount of the same model.
+
+     SkeletonUtils.clone, NOT scene.clone(). A plain Object3D clone copies the
+     skinned meshes but leaves them bound to the ORIGINAL skeleton's bones, so
+     the copy has no working skeleton and renders nothing at all - a blank
+     canvas with no error, no warning, and a scene graph that looks correct
+     under inspection. SkeletonUtils re-associates each cloned mesh with its
+     cloned bones, which is the entire reason that helper exists. */
   const model = useMemo(() => {
-    const clone = scene.clone(true);
+    const clone = cloneSkinned(scene);
     clone.traverse((child) => {
       if (!child.isMesh && !child.isSkinnedMesh) return;
       if (!child.material) return;
@@ -110,10 +118,25 @@ export function PainBodyModel({ onPickRegion, onDiagnostics }) {
     if (index === -1) return;
     const geometry = event.object.geometry;
 
-    /* Front or back, which the skeleton cannot tell us. The hit normal is in
-       the mesh's local space; the model faces +Z after the framing rotation
-       applied by the canvas, so the sign of the normal's Z is the answer. */
+    /* Front or back, which the skeleton cannot tell us: one spine bone drives
+       both faces of the torso. The surface normal can, and its sign along the
+       model's forward axis is the whole answer.
+
+       A Mixamo export faces +Z. Confirmed against the geometry rather than
+       assumed - the head is too near-spherical to tell (0.123 vs 0.126 either
+       side of the midline), but the feet are not: toes reach +0.172 while the
+       heel stops at -0.078. If a future model faces the other way, this sign
+       is the one thing to flip. */
     const facing = event.face.normal ? Math.sign(event.face.normal.z) : 0;
+
+    /* Whether this hit landed on the model's joint geometry, for a model that
+       has any. On the shipped mannequin the ball joints sit inside the outer
+       skin, so a tap always reaches Beta_Surface first and this is always
+       false - which is the correct visual behaviour, since you can only tap
+       what you can see. It is kept for models that expose joint geometry on
+       the surface, where it is the only signal that distinguishes a knee from
+       the shin below it. */
+    const onJointMesh = JOINT_MESH_PATTERN.test(event.object.name || '');
 
     const region = pickRegion(
       event.face,
@@ -121,6 +144,7 @@ export function PainBodyModel({ onPickRegion, onDiagnostics }) {
       geometry.attributes.skinWeight,
       boneNames[index],
       facing,
+      onJointMesh,
     );
 
     // A null pick means no region was identified. Write nothing - never fall

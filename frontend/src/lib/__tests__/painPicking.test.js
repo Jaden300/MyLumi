@@ -241,6 +241,33 @@ describe('resolveRegionFromBones', () => {
   });
 });
 
+/* The path for models whose joints are separate geometry rather than blended
+   weights. The shipped mannequin is one of those - 94% of its vertices bind to
+   a single bone, and nothing anywhere blends an upper and lower limb bone - so
+   weight inspection alone can never find its knees and elbows. */
+describe('joint geometry', () => {
+  it('reads a hit on joint geometry as the joint, not the limb', () => {
+    const ranked = [{ name: 'LeftForeArm', weight: 1 }];
+    expect(resolveRegionFromBones(ranked, 0, true)).toBe('elbow_l');
+    expect(resolveRegionFromBones(ranked, 0, false)).toBe('forearm_l');
+  });
+
+  it('maps each limb bone that owns a joint sphere', () => {
+    expect(resolveRegionFromBones([{ name: 'RightLeg', weight: 1 }], 0, true)).toBe('knee_r');
+    expect(resolveRegionFromBones([{ name: 'LeftUpLeg', weight: 1 }], 0, true)).toBe('hip_l');
+  });
+
+  it('falls through for a joint-mesh bone that names no joint', () => {
+    // A sphere at the wrist or ankle is still just the hand or the foot.
+    expect(resolveRegionFromBones([{ name: 'LeftHand', weight: 1 }], 0, true)).toBe('hand_l');
+    expect(resolveRegionFromBones([{ name: 'Spine2', weight: 1 }], 0, true)).toBe('chest_c');
+  });
+
+  it('lets joint geometry outrank a front/back split', () => {
+    expect(resolveRegionFromBones([{ name: 'LeftUpLeg', weight: 1 }], -1, true)).toBe('hip_l');
+  });
+});
+
 describe('pickRegion', () => {
   it('resolves a hand tap through the full path', () => {
     expect(pick([[[3, 1]], [[3, 1]], [[3, 1]]])).toBe('hand_l');

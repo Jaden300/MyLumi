@@ -5,16 +5,28 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   build: {
+    /* Do NOT emit <link rel="modulepreload"> for lazily-imported chunks.
+       Vite adds those by default to hide latency, but for the 3D stack it
+       defeats the entire split: the browser would fetch ~980KB of three.js
+       from index.html on the dashboard, for every visitor, whether or not they
+       ever open the pain step. Keeping the chunk out of the entry bundle is
+       only half the job if the page then asks for it anyway. Measured, not
+       assumed - the chunk was being fetched on first paint until this was set,
+       and scripts/check-bundle.mjs now fails the build if it returns. */
+    modulePreload: false,
     rollupOptions: {
       output: {
-        // Pin the 3D stack into its own chunk. The dynamic import in
-        // PainBodySurface is what keeps it out of the entry bundle; naming the
-        // chunk keeps it stable across builds, so it caches independently of
-        // app code that changes far more often. It is by a wide margin the
-        // largest dependency in the project and is reached from exactly one
-        // check-in step, so it must never be merged back into the main bundle.
-        manualChunks: (id) =>
-          /node_modules\/(three|@react-three)\//.test(id) ? 'three' : undefined,
+        /* Pin three.js itself into its own chunk, so it caches independently of
+           app code that changes far more often.
+
+           Deliberately NOT @react-three/*. Those packages depend on React, and
+           naming them here dragged React into the same chunk - at which point
+           the entry bundle had to import that chunk statically to get React,
+           and the whole 3D stack was fetched on first paint again. The dynamic
+           import in PainBodySurface is what actually defers the code; this rule
+           only decides where the largest dependency lands. Verified by watching
+           the network on the dashboard, not by reading the chunk listing. */
+        manualChunks: (id) => (/node_modules\/three\//.test(id) ? 'three' : undefined),
       },
     },
   },
