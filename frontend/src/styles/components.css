@@ -62,6 +62,12 @@
 
 .grid--loose { gap: var(--space-5); }
 
+/* Cards in the row match the tallest, instead of each sizing to its own content.
+   `align-items: start` above is right for most grids - a short card should not
+   stretch to match a tall neighbour it has nothing to do with - but two cards
+   that read as a pair look broken when their bottom edges do not line up. */
+.grid--even { align-items: stretch; }
+
 @media (min-width: 640px) {
   .grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid--auto { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
@@ -1273,27 +1279,6 @@
    Prediction, correlation and anomaly cards. Deliberately quiet: these carry the
    least certain information in the app, so they must not look the loudest. */
 
-.confidence {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-full);
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-/* Low confidence is muted rather than warning-coloured. An amber pill would read
-   as "something is wrong", when the honest message is "we're still learning". */
-.confidence--low { color: var(--text-muted); }
-.confidence--moderate { color: var(--info); }
-.confidence--good { color: var(--positive); }
-
-.confidence__count { font-weight: 400; opacity: 0.85; }
-
 .driver-list,
 .finding-list {
   list-style: none;
@@ -1340,7 +1325,6 @@
   line-height: 1.5;
 }
 
-.finding__stats { margin: var(--space-2) 0 0; }
 
 /* --- responsive --------------------------------------------------------------- */
 
@@ -1644,3 +1628,221 @@
 
 .curve__swatch--model { background: var(--accent); }
 .curve__swatch--naive { background: var(--text-muted); }
+
+/* --- pain map -------------------------------------------------------------- */
+
+.pain-surface {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+  /* The canvas handles its own drag gestures; without this the browser steals
+     vertical drags for page scroll and orbiting on a phone barely works. */
+  touch-action: none;
+}
+
+/* The notice state does not need the full 380px the canvas occupies - a large
+   empty panel reads as something broken rather than as a message. */
+.pain-surface--notice {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  height: auto;
+  min-height: 120px;
+  padding: var(--space-5);
+  text-align: center;
+  touch-action: auto;
+}
+
+.pain-surface__diagnostic {
+  position: absolute;
+  inset: auto 0 0 0;
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--surface-raised);
+  border-top: 1px solid var(--border);
+  color: var(--caution);
+  font-size: var(--fs-xs);
+}
+
+.pain-scale {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.pain-scale__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pain-scale__label {
+  font-weight: 500;
+}
+
+.pain-scale__readout {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-size: var(--fs-sm);
+}
+
+.pain-scale__value {
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+}
+
+.pain-scale__of {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.pain-scale__slider {
+  width: 100%;
+  height: 44px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.pain-scale__slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--sev-0), var(--sev-3), var(--sev-6));
+}
+
+.pain-scale__slider::-moz-range-track {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--sev-0), var(--sev-3), var(--sev-6));
+}
+
+.pain-scale__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -10px;
+  border: 3px solid var(--bg);
+  border-radius: var(--radius-full);
+  background: var(--text);
+  cursor: grab;
+}
+
+.pain-scale__slider::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--bg);
+  border-radius: var(--radius-full);
+  background: var(--text);
+  cursor: grab;
+}
+
+/* An unrated region shows a hollow thumb, so "parked at zero" cannot be
+   mistaken for "rated zero". */
+.pain-scale__slider[data-unset]::-webkit-slider-thumb { background: var(--surface-raised); }
+.pain-scale__slider[data-unset]::-moz-range-thumb { background: var(--surface-raised); }
+
+.pain-scale__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pain-scale__anchor {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.pain-scale__remove {
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.pain-scale__remove:hover { color: var(--text); background: var(--surface-raised); }
+
+.region-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.region-picker__group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.region-picker__legend {
+  padding: 0 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.region-picker__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.region-picker__option {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.region-picker__option[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.pain-row {
+  padding: var(--space-2) 0;
+}
+
+.pain-row__name {
+  gap: var(--space-2);
+}
+
+.pain-row__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  flex: none;
+}
+
+.pain-surface__hint {
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}

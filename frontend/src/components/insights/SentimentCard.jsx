@@ -18,7 +18,6 @@
 import { Card } from '../ui/Card.jsx';
 import { Button } from '../ui/Button.jsx';
 import { Lumi } from '../lumi/Lumi.jsx';
-import { ConfidenceBadge } from './ConfidenceBadge.jsx';
 import {
   describeMeanSentiment,
   describeSentiment,
@@ -36,7 +35,7 @@ const TREND_SENTENCE = {
   steady: "The tone of what you've written has stayed fairly steady.",
 };
 
-export function SentimentCard({ result, loading, onRevoke }) {
+export function SentimentCard({ result, agreement, loading, onRevoke }) {
   if (loading && !result) {
     return (
       <Card title="Journal tone">
@@ -83,7 +82,7 @@ export function SentimentCard({ result, loading, onRevoke }) {
     );
   }
 
-  const { points, trend, meanSentiment, confidence, nDays } = result;
+  const { points, trend, meanSentiment, nDays } = result;
   const word = describeMeanSentiment(meanSentiment);
   const segments = buildSentimentSegments(points);
 
@@ -91,16 +90,13 @@ export function SentimentCard({ result, loading, onRevoke }) {
     <Card title="Journal tone" variant="feature">
       <Lumi size={160} state="reading" className="lumi-deco lumi-deco--bl" />
       <div className="stack">
-        <div className="row row--between" style={{ gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-          <p className="text-sm">
-            {/* No hedged direction under the backend's 5-entry threshold. Same
-                discipline as refusing a prediction under 7 nights. */}
-            {trend
-              ? TREND_SENTENCE[trend]
-              : "Not enough journal entries yet to see a direction - here's what MyLumi has so far."}
-          </p>
-          <ConfidenceBadge confidence={confidence} nDays={nDays} />
-        </div>
+        <p className="text-sm">
+          {/* No hedged direction under the backend's 5-entry threshold. Same
+              discipline as refusing a prediction under 7 nights. */}
+          {trend
+            ? TREND_SENTENCE[trend]
+            : "Not enough journal entries yet to see a direction - here's what MyLumi has so far."}
+        </p>
 
         {word && (
           <p className="text-sm">
@@ -114,9 +110,47 @@ export function SentimentCard({ result, loading, onRevoke }) {
 
         <Sparkline segments={segments} label={describeSentiment(result)} />
 
+        <AgreementNote finding={agreement} />
+        <WritingNote complexity={result.complexity} />
+
         <RevokeRow onRevoke={onRevoke} />
       </div>
     </Card>
+  );
+}
+
+/* Words against numbers. One sentence, and only when it clears the floors in
+   lib/agreement.js - which it often will not, and that is the intended rate.
+
+   Deliberately a paragraph inside this card rather than a card of its own. A
+   second card would double the journal feature's footprint on the insights page,
+   and this is the section responsible-ai.md commits to keeping quietest. */
+function AgreementNote({ finding }) {
+  if (!finding?.statement) return null;
+  return <p className="text-sm">{finding.statement}</p>;
+}
+
+/* How the writing itself is changing.
+
+   The alternative explanations are named in the copy, not left for the reader to
+   supply. This is the weakest measurement in the app: a change in how someone
+   writes has several likelier causes than anything clinical, and a sentence that
+   reported the drift without naming them would invite the frightening reading
+   while claiming to have said nothing. The model refuses the cognitive
+   vocabulary (a backend test asserts it); this paragraph is where the refusal
+   becomes something the user can actually see. */
+function WritingNote({ complexity }) {
+  const finding = complexity?.available ? complexity.finding : null;
+  if (!finding?.statement) return null;
+  return (
+    <div className="stack stack--tight">
+      <p className="text-sm">{finding.statement}</p>
+      <p className="text-muted text-sm">
+        Plenty of things change how someone writes - being in a hurry, typing on a phone,
+        or simply having less to say on a good day. MyLumi is describing your entries, not
+        drawing a conclusion from them.
+      </p>
+    </div>
   );
 }
 

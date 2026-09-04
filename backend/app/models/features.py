@@ -66,6 +66,9 @@ FEATURE_LABELS = {
     "readiness": "readiness for the day",
     "symptomBurden": "today's symptom burden",
     "daysSinceInjury": "days since injury",
+    "painRegionCount": "number of aching areas",
+    "painMax": "worst pain rating",
+    "painMean": "average pain rating",
 }
 
 # Features whose scale is "higher is better" for sleep. Used only for phrasing,
@@ -119,6 +122,9 @@ def to_episodes(rows) -> list[Episode]:
             "readiness": _f(row.readiness),
             "symptomBurden": _f(row.symptomBurden),
             "daysSinceInjury": _f(row.daysSinceInjury),
+            "painRegionCount": _f(row.painRegionCount),
+            "painMax": _f(row.painMax),
+            "painMean": _f(row.painMean),
         }
         # The 9 PCSS items. Copied through the same _f() as everything else, so
         # an unanswered item stays None rather than becoming a confident 0.

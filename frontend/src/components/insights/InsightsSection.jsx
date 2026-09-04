@@ -33,7 +33,21 @@ export function InsightsSection({ variant = 'full' }) {
   const { loading, insights, configured, reload } = useInsights();
   const compact = variant === 'compact';
 
-  if (!configured) return null;
+  /* An unconfigured build used to render nothing at all here, which is how a
+     missing VITE_API_URL silently removed six cards from the insights page with
+     no way to tell that from "this build has no insights". Say it instead. The
+     dashboard stays quiet - see the compact reasoning below. */
+  if (!configured) {
+    if (compact) return null;
+    return (
+      <Card title="Insights unavailable">
+        <p className="text-sm">
+          Model service is not configured for this build, so MyLumi cannot look
+          at your patterns. Your check-ins are unaffected.
+        </p>
+      </Card>
+    );
+  }
 
   if (loading && !insights) {
     return (

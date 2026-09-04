@@ -125,6 +125,40 @@ def test_feature_row_carries_no_identifiers():
         assert banned not in FeatureRow.model_fields
 
 
+def test_pain_crosses_the_wire_as_aggregates_only():
+    """Where someone hurts arrives as three numbers, never as a region map.
+
+    A column per body region would be nearly all null on every row, and a stable
+    map of where a person aches week after week is closer to an identifier than
+    a measurement. Pinned here so adding one later has to be deliberate.
+    """
+    from app.schemas import FeatureRow
+
+    for field in ("painRegionCount", "painMax", "painMean"):
+        assert field in FeatureRow.model_fields
+        assert FeatureRow.model_fields[field].default is None
+
+    for banned in ("painRegions", "regions", "pain_thigh_r", "painMap"):
+        assert banned not in FeatureRow.model_fields
+
+
+def test_pain_absence_and_emptiness_stay_distinct():
+    """None means never asked; 0 regions means asked and nothing hurt.
+
+    The asymmetry is deliberate: a count over an empty set is a real 0, but a
+    maximum over one is undefined and must not arrive as 0.
+    """
+    from app.schemas import FeatureRow
+
+    unasked = FeatureRow(nightOf="2026-01-01")
+    assert unasked.painRegionCount is None
+    assert unasked.painMax is None
+
+    none_reported = FeatureRow(nightOf="2026-01-01", painRegionCount=0)
+    assert none_reported.painRegionCount == 0
+    assert none_reported.painMax is None
+
+
 def test_nlp_endpoint_works_and_is_separate():
     days = ["an awful painful exhausting day", "a good clear rested day overall"]
     response = client.post(
@@ -157,3 +191,54 @@ def test_cold_start_case_is_honest_end_to_end():
     for section in body.values():
         assert section["available"] is False
         assert section["reason"]
+
+
+def test_nlp_survives_a_failing_secondary_model(monkeypatch):
+    """A crash in the extractor must not take down a sentiment card that worked.
+
+    The three models in this endpoint share one envelope, so the degradation is
+    asymmetric by design: mentions and complexity fail soft into states the
+    client already renders, rather than 500-ing the whole response.
+    """
+    from app.models.nlp import symptom_terms
+
+    def boom(_entries):
+        raise RuntimeError("shape the extractor did not expect")
+
+    monkeypatch.setattr(symptom_terms, "mentions", boom)
+
+    days = ["an awful painful exhausting day", "a good clear rested day overall"]
+    response = client.post(
+        "/v1/nlp",
+        json={
+            "texts": [
+                {"nightOf": f"2026-01-{i:02d}", "day": days[i % 2]}
+                for i in range(1, 8)
+            ]
+        },
+    )
+    body = response.json()
+    assert response.status_code == 200
+    assert body["available"] is True      # sentiment survived
+    assert body["mentions"] == []         # the failure degraded to a valid state
+
+
+def test_nlp_response_carries_no_numeric_clinical_fields():
+    """The response is the other half of the wire boundary.
+
+    The request cannot carry symptom scores; this asserts the response does not
+    hand any back either, so nothing about the numeric record can round-trip
+    through the text endpoint.
+    """
+    response = client.post(
+        "/v1/nlp",
+        json={
+            "texts": [
+                {"nightOf": f"2026-01-{i:02d}", "day": "a rough painful tiring day"}
+                for i in range(1, 8)
+            ]
+        },
+    )
+    serialised = response.text
+    for banned in ("symptomBurden", "sleepQuality", "sleepDurationHours", "daysSinceInjury"):
+        assert banned not in serialised

@@ -20,12 +20,30 @@ export function createNightFlow(saveNight) {
   return {
     kind: 'night',
     draftKey: 'night',
-    version: 1,
+    /* Bumped to 2 when the pain map step was inserted. A draft saved against
+       the six-step flow stores a step index that means something different in
+       the seven-step one, so the version guard discards it rather than
+       restoring someone onto the wrong screen. Costs at most one in-flight
+       check-in per user, once. */
+    version: 2,
     title: 'Night check-in',
     steps: [
       symptomStep(1, SYMPTOM_KEYS.slice(0, 3)),
       symptomStep(2, SYMPTOM_KEYS.slice(3, 6)),
       symptomStep(3, SYMPTOM_KEYS.slice(6, 9)),
+      {
+        /* Directly after the symptom ratings: where it hurts is the same
+           question as how much, asked spatially, and the two belong together
+           before the flow moves on to mood and sleep.
+
+           Complete means the user has said something, which is either marking
+           somewhere or saying nothing hurts. An empty region map with no
+           `answered` flag is an accidental Next, not an answer. */
+        id: 'pain',
+        label: 'Pain',
+        component: 'PainMapStep',
+        validate: (values) => values.pain?.answered === true,
+      },
       {
         id: 'mood',
         label: 'Mood',
@@ -50,6 +68,7 @@ export function createNightFlow(saveNight) {
     ],
     initialValues: () => ({
       symptoms: {},
+      pain: { answered: false, regions: {} },
       mood: null,
       journal: { day: '', factors: '' },
       sleep: { plannedBedtime: null, preSleepStress: null, sleepAidUsed: false },

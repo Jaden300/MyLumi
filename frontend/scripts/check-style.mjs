@@ -48,7 +48,49 @@ function* walk(dir) {
   }
 }
 
+/* --- the caption layer -----------------------------------------------------
+
+   docs/design-system.md, "No caption layer": --fs-xs is for labels and data
+   annotations, never for prose. This rule was written once, held for a while,
+   and came back the moment three new cards were added - which is why it is a
+   check now and not only a sentence in a doc.
+
+   What counts as prose rather than a label is a judgement call, so the test is
+   deliberately blunt: more than SHORT_ENOUGH words, or a sentence-ending full
+   stop. "none", "severe", "of 54" and "tomorrow = today" pass; a sentence
+   explaining what the chart means does not.
+
+   Safety copy, screen-reader labels and correctness notes about a specific
+   number are exempt - mark those with a caption-ok comment on the line before
+   and say why. */
+
+const SHORT_ENOUGH = 6;
+const CAPTION_OK = /caption-ok/;
+
+// Opening tag carrying an --fs-xs class, through to its closing tag. Spans
+// lines, because that is how the prose was written every time it came back.
+const XS_ELEMENT = /<(\w+)[^>]*className=(?:"[^"]*\btext-xs\b[^"]*"|\{[^}]*\btext-xs\b[^}]*\})[^>]*>([\s\S]*?)<\/\1>/g;
+
+function looksLikeProse(inner) {
+  const text = inner
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ')  // JSX comments, before interpolations
+    .replace(/<[^>]*>/g, ' ')               // nested tags
+    // An interpolation stands in for one word. Dropping them entirely let
+    // "Based on {n} nights - strength {rho}" read as four words and pass; each
+    // one is a value the reader still has to take in.
+    .replace(/\{[^}]*\}/g, ' _ ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text) return null;
+  const words = text.split(' ').filter(Boolean);
+  if (words.length > SHORT_ENOUGH) return text;
+  if (/\.\s/.test(text)) return text;             // "One thing. Then another."
+  if (words.length > 2 && /\.$/.test(text)) return text;
+  return null;
+}
+
 const violations = [];
+const captions = [];
 
 for (const file of walk(ROOT)) {
   let text;
@@ -57,7 +99,9 @@ for (const file of walk(ROOT)) {
   } catch {
     continue;
   }
-  text.split('\n').forEach((line, i) => {
+  const lines = text.split('\n');
+
+  lines.forEach((line, i) => {
     for (const [char, name, fix] of BANNED) {
       const col = line.indexOf(char);
       if (col !== -1) {
@@ -68,17 +112,51 @@ for (const file of walk(ROOT)) {
       }
     }
   });
+
+  if (extname(file) !== '.jsx') continue;
+
+  for (const match of text.matchAll(XS_ELEMENT)) {
+    const prose = looksLikeProse(match[2]);
+    if (!prose) continue;
+    const lineNo = text.slice(0, match.index).split('\n').length;
+    /* The lines above, so the escape hatch can sit above a wrapping conditional
+       as well as directly above the element. Wide enough for a multi-line
+       comment explaining itself, which is the whole point of requiring one. */
+    const preceding = lines.slice(Math.max(0, lineNo - 9), lineNo - 1).join(' ');
+    if (CAPTION_OK.test(preceding)) continue;
+    captions.push({
+      file: relative(ROOT, file), line: lineNo, excerpt: prose.slice(0, 90),
+    });
+  }
 }
 
-if (violations.length === 0) {
-  console.log('check:style - clean, no banned typographic characters found.');
+if (violations.length === 0 && captions.length === 0) {
+  console.log('check:style - clean, no banned characters and no caption layer.');
   process.exit(0);
 }
 
-console.error(`check:style - found ${violations.length} violation(s):\n`);
-for (const v of violations) {
-  console.error(`  ${v.file}:${v.line}:${v.col}  ${v.name} (${v.fix})`);
-  console.error(`    ${v.excerpt}`);
+if (violations.length > 0) {
+  console.error(`check:style - found ${violations.length} typographic violation(s):\n`);
+  for (const v of violations) {
+    console.error(`  ${v.file}:${v.line}:${v.col}  ${v.name} (${v.fix})`);
+    console.error(`    ${v.excerpt}`);
+  }
+  console.error('\nSee docs/workflow.md, "Writing conventions".');
 }
-console.error('\nSee docs/workflow.md, "Writing conventions".');
+
+if (captions.length > 0) {
+  console.error(`\ncheck:style - found ${captions.length} caption(s) in --fs-xs:\n`);
+  for (const c of captions) {
+    console.error(`  ${c.file}:${c.line}  prose at --fs-xs`);
+    console.error(`    ${c.excerpt}`);
+  }
+  console.error(
+    '\nSmall print under a chart or card is not the place for an explanation - ' +
+    'it stops being read.\nPut it on the About page, or cut it. See ' +
+    'docs/design-system.md, "No caption layer".\nIf this is safety copy, a ' +
+    'screen-reader label, or a note about a specific wrong number,\nadd a ' +
+    '{/* caption-ok: why */} comment on the line above.',
+  );
+}
+
 process.exit(1);

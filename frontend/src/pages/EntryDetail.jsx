@@ -3,6 +3,7 @@ import { useLumiData } from '../hooks/useLumiData.jsx';
 import { Card } from '../components/ui/Card.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Lumi } from '../components/lumi/Lumi.jsx';
+import { PainSummaryCard } from '../components/pain/PainSummaryCard.jsx';
 import { formatNightLabel, formatTime12h, formatDuration } from '../lib/dates.js';
 import { deriveSleepDuration, hasDstShift } from '../lib/derive.js';
 import { SYMPTOMS, MAX_SYMPTOM_BURDEN } from '../lib/constants.js';
@@ -71,6 +72,8 @@ export function EntryDetail() {
             ))}
           </Card>
         )}
+
+        <PainSummaryCard pain={night?.pain} />
 
         <Card title="Sleep">
           <Row label="Planned bedtime" value={formatTime12h(night?.sleep?.plannedBedtime)} />

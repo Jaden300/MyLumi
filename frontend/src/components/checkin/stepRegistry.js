@@ -5,6 +5,7 @@
    draft can store `stepId` and survive steps being reordered or inserted. */
 
 import { SymptomStep } from './steps/SymptomStep.jsx';
+import { PainMapStep } from './steps/PainMapStep.jsx';
 import { MoodStep } from './steps/MoodStep.jsx';
 import { JournalStep } from './steps/JournalStep.jsx';
 import { SleepIntentStep } from './steps/SleepIntentStep.jsx';
@@ -14,6 +15,7 @@ import { MorningStateStep } from './steps/MorningStateStep.jsx';
 
 export const stepRegistry = {
   SymptomStep,
+  PainMapStep,
   MoodStep,
   JournalStep,
   SleepIntentStep,

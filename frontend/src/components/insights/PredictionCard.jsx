@@ -1,16 +1,18 @@
-/* Tomorrow's forecast: value + confidence + why.
+/* Tomorrow's forecast: value + why.
 
-   The design system requires all three, together, every time. A number without
-   its reasoning is exactly the black box this project competes against.
+   A number without its reasoning is exactly the black box this project competes
+   against, so the drivers are not optional.
 
    The range is presented BEFORE the point estimate in the visual hierarchy on
    purpose. The interval is the honest answer; the single number is a convenience
-   inside it, and a patient should not read it as a promise. */
+   inside it, and a patient should not read it as a promise. The interval is now
+   the only thing carrying uncertainty on this card - the confidence pill was
+   removed, see docs/design-system.md, "No caption layer". The refusal rule
+   below is untouched and still enforced on both sides. */
 
 import { Link } from 'react-router-dom';
 import { Card } from '../ui/Card.jsx';
 import { Lumi } from '../lumi/Lumi.jsx';
-import { ConfidenceBadge } from './ConfidenceBadge.jsx';
 import { MAX_SYMPTOM_BURDEN as MAX_BURDEN, MIN_NIGHTS_FOR_INSIGHT } from '../../lib/constants.js';
 
 /** Plain-language band. Never a diagnosis, never a recovery date. */
@@ -28,14 +30,14 @@ const isFinitePair = (value) =>
 /**
  * `compact` drops the drivers list and links to /insights for the reasoning.
  *
- * The number, its interval and its confidence stay together even in compact form
- * - those three are the design system's floor for showing a prediction at all,
- * and a compact variant is not a licence to drop one of them.
+ * The number and its interval stay together even in compact form - a point
+ * estimate without its range reads as a promise, and a compact variant is not a
+ * licence to drop the range.
  */
 export function PredictionCard({ forecast, compact = false }) {
   if (!forecast?.available) return null;
 
-  const { predictedBurden, interval, drivers, confidence, nDays } = forecast;
+  const { predictedBurden, interval, drivers, nDays } = forecast;
 
   /* Refuse to render regardless of what the server said.
      `available: true` is the server's opinion; these are the app's own rules,
@@ -54,20 +56,17 @@ export function PredictionCard({ forecast, compact = false }) {
           in one column is clutter. */}
       {!compact && <Lumi size={180} state="thinking" className="lumi-deco lumi-deco--br" />}
       <div className="stack">
-        <div className="row row--between" style={{ alignItems: 'flex-start' }}>
-          <div className="stack stack--tight">
-            <span className="stat__label">Estimated symptom burden</span>
-            <div className="row" style={{ alignItems: 'baseline', gap: 'var(--space-2)' }}>
-              <strong className="display-number">
-                {low}-{high}
-              </strong>
-              <span className="text-muted text-sm">of {MAX_BURDEN}</span>
-            </div>
-            <span className="text-sm text-muted">
-              Most likely around {predictedBurden} - {bandFor(predictedBurden)} for you.
-            </span>
+        <div className="stack stack--tight">
+          <span className="stat__label">Estimated symptom burden</span>
+          <div className="row" style={{ alignItems: 'baseline', gap: 'var(--space-2)' }}>
+            <strong className="display-number">
+              {low}-{high}
+            </strong>
+            <span className="text-muted text-sm">of {MAX_BURDEN}</span>
           </div>
-          <ConfidenceBadge confidence={confidence} nDays={nDays} />
+          <span className="text-sm text-muted">
+            Most likely around {predictedBurden} - {bandFor(predictedBurden)} for you.
+          </span>
         </div>
 
         {!compact && drivers?.length > 0 && (

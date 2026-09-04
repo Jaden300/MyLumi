@@ -77,13 +77,6 @@ export function ModelHonestyCard({ validation }) {
                 <span className="audit-bar__value">{naiveError.toFixed(1)}</span>
               </li>
             </ul>
-            {/* The sentence above already gives the comparison in words, so
-                this only explains the units. Repeating the percentage here
-                would say the same thing twice in two different registers. */}
-            <p className="text-muted text-xs">
-              Symptom burden points, out of {validation.maxBurden ?? 54}. Lower is
-              better.
-            </p>
           </div>
         )}
 
@@ -101,10 +94,6 @@ export function ModelHonestyCard({ validation }) {
           </div>
         )}
 
-        <p className="text-muted text-xs">
-          Each check refits the model on only the nights before the one it is
-          predicting, so nothing here is scored on data it already saw.
-        </p>
       </div>
     </Card>
   );

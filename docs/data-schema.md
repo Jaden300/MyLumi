@@ -52,9 +52,51 @@ The shared `mylumi.` prefix is what makes "delete all my data" provably complete
 See [`src/lib/schema.js`](../frontend/src/lib/schema.js) for the authoritative structure. Notable fields:
 
 - **`night.symptomBurden`** - the sum of the 9 PCSS items (0-54). Stored despite being derived: it's read by the dashboard, history, chart, and later the forecast, and computing it in six places is where inconsistency starts. One writer (`buildNightBlock`), migration-recomputable.
+- **`night.pain`** - the pain map, or `null`. See the three-state table below.
 - **`morning.awakenings`** - a **string** (`"0" | "1" | "2" | "3+"`). Storing `3` would silently discard "or more" and lie to the model. Only `awakeningsToOrdinal` flattens it, and that loss is documented at the point it happens.
 - **Times** (`plannedBedtime`, `wakeTime`) - wall-clock `"HH:mm"` strings, not instants. These are self-reports ("about half eleven"), not measurements; an instant would over-claim precision. `<input type="time">` returns exactly this format.
 - **Sleep duration** - *not* stored. Derived from the pair, both of which live in the same record.
+
+## The pain map: three states, not two
+
+```
+entry.night.pain = { answered: true, regions: { thigh_r: 6.5, neck_c: 4 } }
+```
+
+Regions are a keyed object rather than an array, because the check-in's setter
+writes by dotted path (`pain.regions.thigh_r`) and because re-rating a region
+must update rather than append. Scores are 0-10 in half steps - the Numeric
+Rating Scale, which is the standard instrument for pain, and the reason this is
+the one scale in the app that is not 0-6.
+
+**Why `answered` exists.** Three states have to stay distinguishable, and an
+empty region map cannot carry two of them:
+
+| State | Stored |
+|---|---|
+| The step never ran | `night.pain === null` |
+| Asked, and nothing hurt | `{ answered: true, regions: {} }` |
+| Asked, and these areas did | `{ answered: true, regions: {...} }` |
+
+Without the flag, "no pain anywhere" and "never asked" are the same value, and
+the wire aggregate would have to choose between inventing a `0` and discarding a
+real answer. Pressing Next with nothing marked is not treated as "nothing hurts"
+either, because that is also what an accidental Next looks like - saying nothing
+hurts is a deliberate action.
+
+Scores are sanitized by `clampHalfStep`, **not** `clampInt`: `clampInt` rounds,
+so it would silently turn a 7.5 into an 8 and store a rating the user never
+gave. Off-step values are rejected rather than repaired.
+
+`sanitizePain` iterates the known region vocabulary rather than the input's
+keys, mirroring `sanitizeSymptoms`, so a key from a hand-edited export cannot
+land in storage. It drops null-scored regions, which is how a region tapped and
+then cleared leaves the record. Unlike `sanitizeSymptoms` it does **not** write
+`null` for every unmarked region: storing 27 nulls a night would assert the user
+said those areas do not hurt, when what they said was which ones do.
+
+**Region ids are frozen.** Once a night is stored with `thigh_r`, that string is
+in the clinical record; renaming it needs a migration. Adding a new id is free.
 
 ## Rules that protect the clinical record
 

@@ -30,6 +30,19 @@ CANDIDATES = [
     "sleepQuality",
     "awakenings",
     "preSleepStress",
+    # Where and how badly the person ached. Physical pain is plausibly upstream
+    # of tomorrow's symptom burden and it is something the user can act on, so
+    # it meets the same bar as the sleep features above.
+    #
+    # Widening this list is not free: Holm corrects across however many features
+    # survive testing, so going from 4 to 7 tightens the bar for the strongest
+    # finding from alpha/4 to alpha/7 - 0.0125 to 0.0071. That is the intended
+    # behaviour, not a cost to route around. The demo's headline sleep
+    # correlation sits at p = 0.004 and still clears it, and test_demo.py pins
+    # that value so a future addition here cannot quietly empty the card.
+    "painRegionCount",
+    "painMax",
+    "painMean",
 ]
 
 MIN_PAIRS = 7

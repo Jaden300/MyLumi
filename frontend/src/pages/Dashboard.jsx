@@ -64,15 +64,16 @@ export function Dashboard() {
       )}
 
       {/* Streak and last night are both glanceable figures, so they pair across
-          rather than stacking and pushing the chart below the fold. */}
-      <div className="grid grid--2">
+          rather than stacking and pushing the chart below the fold. They read as
+          a pair, so they match heights - grid--even. */}
+      <div className="grid grid--2 grid--even">
         <StreakCard streak={streak} nightDone={status.nightDone} morningDue={status.morningDue} />
         {lastLogged && <LastNightSummary entry={lastLogged} />}
       </div>
 
-      {/* Compact: the number and its confidence, linking through for the
-          reasoning. Moving the forecast off the home screen entirely would lose
-          the app's most distinctive feature from first view. */}
+      {/* Compact: the number and its range, linking through for the reasoning.
+          Moving the forecast off the home screen entirely would lose the app's
+          most distinctive feature from first view. */}
       <InsightsSection variant="compact" />
 
       {hasAnyEntry && (

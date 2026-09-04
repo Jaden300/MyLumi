@@ -272,3 +272,80 @@ def make_sparse_rows(n: int = 20, start: date = date(2026, 1, 1)) -> list[Featur
         )
         for i in range(n)
     ]
+
+
+# --- journal text ------------------------------------------------------------
+
+# A corpus for measuring lexicon coverage rather than asserting it.
+#
+# HALF of these are the strings the app's own demo seed writes
+# (frontend/src/lib/demoSeed.js), so the metric reflects the text the lexicon
+# will actually meet. The other half are written HERE, deliberately using
+# vocabulary the demo seed does not - otherwise the measurement is circular:
+# the lexicon was expanded while reading the seed, so scoring only against the
+# seed would measure how well the list matches the corpus it was written from.
+DEMO_SEED_ENTRIES = (
+    "Headache most of the afternoon. Screens made it worse.",
+    "Foggy and slow today. Couldn't concentrate on anything for long.",
+    "Rough one. Tired and irritable, and the light in the office was hard.",
+    "Bad headache again. Had to lie down after lunch.",
+    "Dizzy when I stood up too fast. Felt drained by the evening.",
+    "Steady day. Nothing much to report.",
+    "Manageable. Got through work without needing a break.",
+    "A bit tired but okay overall.",
+    "Fine until the evening, then a mild ache.",
+    "Good day. Felt clearer than I have in a while.",
+    "Much better. Managed a short walk and felt fine after.",
+    "Rested and calm. Easily the best day this week.",
+    "Clear head most of the day. Really encouraging.",
+    "Too much screen time.",
+    "Skipped lunch and pushed through a long meeting.",
+    "Loud open-plan office all afternoon.",
+    "Went to bed far too late.",
+    "Took proper breaks away from screens.",
+    "Early night and a quiet morning.",
+    "Short walk outside, no screens after dinner.",
+    "Groggy. Took a while to feel awake.",
+    "Woke up with a headache already there.",
+    "Restless night, still exhausted.",
+    "Woke up rested for once.",
+    "Slept through. Felt clear.",
+    "Better morning. Calm and steady.",
+)
+
+# Written for this test, using words the seed never uses.
+HELD_OUT_ENTRIES = (
+    "Throbbing behind my temples for hours and the glare off the road was unbearable.",
+    "Queasy all morning, and standing up made everything start spinning.",
+    "Overdid it yesterday and paid for it. Completely wiped out by three.",
+    "Snappy with everyone and I felt awful about it afterwards.",
+    "Scattered and forgetful, kept losing track of what I was doing.",
+    "A wonderful morning. Woke refreshed and stayed clear-headed right through.",
+    "Coped well despite a stressful meeting. Quite pleased with how I paced it.",
+    "Ringing in my ears got noticeably worse in the noisy cafe.",
+    "Blurry vision late in the afternoon, and my balance felt wobbly.",
+    "Tossing and turning half the night, woke up unrested and grumpy.",
+    "Encouraging day. Genuinely optimistic for the first time in weeks.",
+    "Muddled and hazy, could not focus on reading for more than a minute.",
+    "Cancelled my plans because the migraine was blinding.",
+    "Solid uninterrupted sleep and a restorative morning. Felt strong.",
+    "Tense and jittery, and bright screens were especially difficult.",
+)
+
+JOURNAL_CORPUS = DEMO_SEED_ENTRIES + HELD_OUT_ENTRIES
+
+# Hand-labelled sign expectations. The regression net that lets the lexicon grow
+# without anyone re-deriving whether it still works. Signs only - never
+# magnitudes, which every expansion legitimately shifts.
+SIGNED_ENTRIES = (
+    ("Throbbing behind my temples for hours and the glare was unbearable.", -1),
+    ("Queasy all morning, and standing up made everything start spinning.", -1),
+    ("Overdid it yesterday and paid for it. Completely wiped out by three.", -1),
+    ("Snappy with everyone and I felt awful about it afterwards.", -1),
+    ("Cancelled my plans because the migraine was blinding.", -1),
+    ("A wonderful morning. Woke refreshed and stayed clear-headed right through.", 1),
+    ("Coped well despite a stressful meeting. Quite pleased with how I paced it.", 1),
+    ("Encouraging day. Genuinely optimistic for the first time in weeks.", 1),
+    ("Solid uninterrupted sleep and a restorative morning. Felt strong.", 1),
+    ("Rested and calm. Easily the best day this week.", 1),
+)

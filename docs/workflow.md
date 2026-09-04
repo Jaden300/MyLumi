@@ -27,15 +27,31 @@ strings, code comments, docs, test names, and commit messages.
 - Ellipsis `...` is allowed in UI copy (`'Saving...'`); it is a deliberate
   convention, not a dash.
 
+### UI copy
+
+- **No explanatory small print under a chart or a card.** No methodology
+  footnotes, no "based on N nights", no legend restating what the chart already
+  shows. If a card needs a sentence underneath to make sense, fix the card.
+  Limitations belong on the About page, where they can actually be pointed to.
+  `--fs-xs` is for labels and data annotations, never for prose.
+- The exceptions are safety copy, screen-reader labels, and notes flagging a
+  specific displayed number as possibly wrong. Mark those with a
+  `{/* caption-ok: why */}` comment and say why.
+- The full rule, with the reasoning, is in `docs/design-system.md` under "No
+  caption layer". This convention was written once and regressed anyway, which
+  is why `check:style` now fails the build over it rather than trusting the doc.
+
 Check before committing, from `frontend/`:
 
 ```sh
 npm run check:style
 ```
 
-It scans the whole repo for the banned characters and exits non-zero if it
-finds any. The character list lives in `scripts/check-style.mjs` as escape
-sequences, so no file in the project has to contain the characters it bans.
+It scans the whole repo for the banned characters, and every `.jsx` file for
+prose at `--fs-xs`, and exits non-zero if it finds either. The character list
+lives in `scripts/check-style.mjs` as escape sequences, so no file in the
+project has to contain the characters it bans. `npm run verify` runs it
+alongside lint, tests and the build.
 
 ### Commit messages
 

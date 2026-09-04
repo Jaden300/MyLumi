@@ -144,4 +144,61 @@ describe('toFeatureRow', () => {
     expect(row.sleepAidUsed).toBe(0);
     expect(row.dreamRecall).toBe(1);
   });
+
+  describe('pain aggregates', () => {
+    const withPain = (pain) => {
+      const entry = entryWith();
+      entry.night.pain = pain;
+      return toFeatureRow(entry);
+    };
+
+    it('sends nothing at all when the pain step never ran', () => {
+      const row = withPain(undefined);
+      expect(row.painRegionCount).toBeNull();
+      expect(row.painMax).toBeNull();
+      expect(row.painMean).toBeNull();
+    });
+
+    /* The fabrication guard, and the reason it is named this way: a later
+       simplification will want to make these three consistent, and consistency
+       is exactly the wrong answer. A count over an empty set is a real 0. A
+       maximum over an empty set is undefined, and sending 0 would assert the
+       worst pain measured zero - which is not what "nothing hurt" means. */
+    it('sends a real 0 count for no pain, but leaves max and mean undefined', () => {
+      const row = withPain({ answered: true, regions: {} });
+      expect(row.painRegionCount).toBe(0);
+      expect(row.painMax).toBeNull();
+      expect(row.painMean).toBeNull();
+    });
+
+    it('summarises marked regions', () => {
+      const row = withPain({ answered: true, regions: { thigh_r: 6.5, neck_c: 4, knee_l: 2 } });
+      expect(row.painRegionCount).toBe(3);
+      expect(row.painMax).toBe(6.5);
+      expect(row.painMean).toBeCloseTo(4.17, 2);
+    });
+
+    it('ignores a marked but unrated region in the ratings', () => {
+      // Marked-without-a-score says where, not how much. It counts as an area
+      // but must not be averaged in as though it were a rating.
+      const row = withPain({ answered: true, regions: { thigh_r: 6, neck_c: null } });
+      expect(row.painRegionCount).toBe(1);
+      expect(row.painMax).toBe(6);
+    });
+
+    it('keeps the mean short rather than sending full float precision', () => {
+      const row = withPain({ answered: true, regions: { thigh_r: 5, neck_c: 6, knee_l: 8 } });
+      expect(String(row.painMean).length).toBeLessThanOrEqual(5);
+    });
+
+    it('stays flat, with no nested pain object leaking through', () => {
+      const row = withPain({ answered: true, regions: { thigh_r: 6.5 } });
+      expect(row.pain).toBeUndefined();
+      // Scalars only. null is expected and everywhere - it is how this payload
+      // says "not answered" - so it is the one object-typed value allowed.
+      for (const [key, value] of Object.entries(row)) {
+        expect(value === null || typeof value !== 'object', `${key} is not a scalar`).toBe(true);
+      }
+    });
+  });
 });

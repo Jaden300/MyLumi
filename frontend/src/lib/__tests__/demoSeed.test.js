@@ -214,6 +214,45 @@ describe('buildDemoData', () => {
     expect(withText.length).toBeGreaterThanOrEqual(10);
   });
 
+  /* The demo is what a judge sees, so what the journal cards will actually show
+     on it is worth pinning - the same reasoning as the rho test above, and the
+     same lesson: two of the three bugs in the Phase 3b depth pass were found by
+     running models against this seed rather than against fixtures.
+
+     This uses a stand-in for the backend's extractor (the real one is Python),
+     matching how the demo's clinical text pairs symptom words with ratings. It
+     asserts the SHAPE of what the card will say, not a specific finding. */
+  it('produces enough symptom-word nights for the agreement check to run', () => {
+    const entries = entriesOf(buildDemoData(NOW));
+    // Words the backend vocabulary matches, drawn from the demo's own strings.
+    const TERMS = {
+      headache: ['headache'],
+      fatigue: ['tired', 'exhausted', 'drained'],
+      brainFog: ['foggy', 'fog'],
+      photophobia: ['screens', 'bright'],
+      phonophobia: ['loud', 'noisy'],
+    };
+    const analysed = entries.filter(
+      (e) => (e.night.journal.day || e.night.journal.factors || e.morning.journal.wakeFeeling),
+    );
+
+    // Enough analysed nights to clear MIN_NIGHTS_FOR_AGREEMENT in agreement.js.
+    expect(analysed.length).toBeGreaterThanOrEqual(12);
+
+    // And at least one symptom is written about often enough to have four
+    // nights on each side of the mentioned/silent split.
+    const counts = Object.entries(TERMS).map(([key, words]) => {
+      const mentioned = analysed.filter((e) => {
+        const text = [
+          e.night.journal.day, e.night.journal.factors, e.morning.journal.wakeFeeling,
+        ].join(' ').toLowerCase();
+        return words.some((w) => text.includes(w));
+      }).length;
+      return { key, mentioned, silent: analysed.length - mentioned };
+    });
+    expect(counts.some((c) => c.mentioned >= 4 && c.silent >= 4)).toBe(true);
+  });
+
   it('sets an injury date before the first entry', () => {
     const data = buildDemoData(NOW);
     const first = Object.keys(data.entries).sort()[0];

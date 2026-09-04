@@ -182,6 +182,7 @@ export function buildDemoData(now = new Date(), { nights = DEMO_NIGHTS } = {}) {
         // Mood tracks burden inversely, with slack - a bad symptom day is not
         // automatically a bad mood day.
         mood: clamp(72 - burden * 1.15 + (random() - 0.5) * 16, 0, 100),
+        pain: buildPain(random, burden),
         journal: {
           day: rough ? pick(random, ROUGH_DAYS) : good ? pick(random, GOOD_DAYS) : pick(random, OKAY_DAYS),
           factors: rough ? pick(random, ROUGH_FACTORS) : good ? pick(random, GOOD_FACTORS) : '',
@@ -242,6 +243,55 @@ export function buildDemoData(now = new Date(), { nights = DEMO_NIGHTS } = {}) {
     },
     meta: { ...base.meta, isDemoData: true },
   };
+}
+
+/* Where a demo night aches.
+
+   Generated from that night's symptom burden rather than hardcoded, the same
+   way every other planted effect in this file works: nothing here writes a
+   finding, it writes plausible inputs and lets the models find what is in them.
+
+   Neck and head dominate because that is what post-concussion pain actually
+   looks like, and a rougher night spreads to more areas at higher ratings. The
+   occasional unrelated ache keeps it from being a clean function of burden.
+
+   Some nights get an explicit "nothing hurt" answer rather than a skipped
+   question, so the demo exercises the empty-but-answered state that the null
+   handling in derive.js turns on. */
+const PAIN_COMMON = ['neck_c', 'head_front_c', 'head_back_c'];
+const PAIN_OCCASIONAL = ['shoulder_l', 'shoulder_r', 'upperback_c', 'lowerback_c', 'midback_c'];
+const PAIN_RARE = ['knee_r', 'knee_l', 'hip_r', 'calf_l', 'forearm_r'];
+
+function buildPain(random, burden) {
+  /* A quiet day sometimes genuinely has nothing to report. The threshold is
+     tied to what this seed actually produces - burdens here run from about 14
+     to 39 - so that a few nights exercise the answered-but-empty state rather
+     than it never appearing in the demo at all. That state is the whole reason
+     the `answered` flag exists, and a demo that never shows it would leave the
+     distinction untested by eye. */
+  if (burden <= 18 && random() < 0.6) return { answered: true, regions: {} };
+
+  const severity = Math.min(1, burden / 34);
+  const regions = {};
+
+  const rate = (base) => {
+    const score = base + severity * 4.5 + (random() - 0.5) * 1.6;
+    // Half steps, matching what the UI can actually produce.
+    return Math.min(10, Math.max(0.5, Math.round(score * 2) / 2));
+  };
+
+  regions[PAIN_COMMON[Math.floor(random() * PAIN_COMMON.length)]] = rate(2.2);
+  if (random() < 0.45 + severity * 0.3) {
+    regions[PAIN_COMMON[Math.floor(random() * PAIN_COMMON.length)]] = rate(1.8);
+  }
+  if (random() < 0.3 + severity * 0.45) {
+    regions[PAIN_OCCASIONAL[Math.floor(random() * PAIN_OCCASIONAL.length)]] = rate(1.5);
+  }
+  if (random() < 0.12) {
+    regions[PAIN_RARE[Math.floor(random() * PAIN_RARE.length)]] = rate(1.2);
+  }
+
+  return { answered: true, regions };
 }
 
 function countTrailingComplete(dates, entries) {

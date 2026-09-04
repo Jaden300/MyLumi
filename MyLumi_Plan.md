@@ -116,9 +116,19 @@ We are competing directly for the **Responsible AI** track. This must be visible
 - **Local-first by default.** All check-in data lives in browser local storage. No account required to use the app.
 - **No third-party analytics. No trackers. No ad tech.** None.
 - Any data sent to the backend for inference is sent **without personal identifiers**.
-- A visible, plain-language **"Your Data" page** explaining exactly what is stored, where, and for how long.
-- A working **Export My Data** button (JSON download).
-- A working **Delete All My Data** button that actually wipes everything, with confirmation.
+- A visible, plain-language explanation of exactly what is stored, where, and for
+  how long. *(Built as a "Your Data" page, then folded into the About page during
+  the design pass - the page was one link in a footer nobody opened.)*
+- ~~A working **Export My Data** button (JSON download).~~
+- ~~A working **Delete All My Data** button that actually wipes everything, with confirmation.~~
+
+  **Deviation, deliberate.** Both buttons were removed in the design pass, along
+  with the Your Data page that held them. The consequence is real and worth
+  stating: on a localStorage-only app there is now no way to back up entries
+  before clearing a browser, and no in-app way to erase them. The underlying
+  `exportJSON` and `deleteAll` functions remain in `hooks/useLumiData.jsx` and
+  are still exercised by `lib/__tests__/coreLoop.test.js`, so restoring the UI is
+  a small change if this is reconsidered.
 
 **Model transparency**
 - Every prediction shows **why** - which inputs drove it. No unexplained numbers.

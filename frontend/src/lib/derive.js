@@ -117,11 +117,57 @@ export function toFeatureRow(entry, nextEntry = null, injuryDate = null) {
     dstAffected: hasDstShift(entry) ? 1 : 0,
     // Prediction target: the FOLLOWING episode's daytime symptom burden.
     nextSymptomBurden: nextEntry?.night?.symptomBurden ?? null,
+    ...painFeatures(entry.night.pain),
   };
   for (const key of SYMPTOM_KEYS) {
     row[`symptom_${key}`] = Number.isFinite(symptoms[key]) ? symptoms[key] : null;
   }
   return row;
+}
+
+/**
+ * Pain regions -> three aggregate numbers.
+ *
+ * Aggregates rather than one column per region, for three reasons. The backend
+ * fits on somewhere between 7 and 30 rows, and 29 extra columns on a design
+ * matrix that small are separable by chance alone. They would also be almost
+ * entirely null - a person with one sore knee produces one number and 28
+ * blanks every night - and this project drops rows missing a feature rather
+ * than imputing them, so any model touching a region column would discard
+ * nearly the whole dataset. And a stable map of where someone hurts, week after
+ * week, is closer to an identifier than a measurement; the payload deliberately
+ * carries none.
+ *
+ * The null handling is the part that matters:
+ *
+ *   never asked   -> all three null
+ *   asked, none   -> count 0, max and mean null
+ *   asked, marked -> all three real
+ *
+ * The middle row is the interesting one. A count over an empty set is defined
+ * and it is genuinely 0 - the one place in this app where a zero is not a
+ * fabrication, and only because `answered` proves the question was actually put
+ * to the user. A max and a mean over an empty set are undefined, so they stay
+ * null: sending painMax 0 would assert "the worst pain measured zero", which is
+ * a different claim from "no pain was reported", and it would drag any average
+ * the backend later took toward zero.
+ */
+function painFeatures(pain) {
+  if (pain?.answered !== true) {
+    return { painRegionCount: null, painMax: null, painMean: null };
+  }
+  const scores = Object.values(pain.regions ?? {}).filter(Number.isFinite);
+  if (scores.length === 0) {
+    return { painRegionCount: 0, painMax: null, painMean: null };
+  }
+  const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  return {
+    painRegionCount: scores.length,
+    painMax: Math.max(...scores),
+    // Rounded because the rest of the row is clean, and an unrounded mean would
+    // put 6.833333333333333 on the wire for no gain.
+    painMean: Math.round(mean * 100) / 100,
+  };
 }
 
 /**

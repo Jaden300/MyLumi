@@ -21,7 +21,6 @@
 
 import { Card } from '../ui/Card.jsx';
 import { Lumi } from '../lumi/Lumi.jsx';
-import { ConfidenceBadge } from './ConfidenceBadge.jsx';
 
 const W = 320;
 const H = 140;
@@ -36,7 +35,7 @@ function daysApart(a, b) {
 export function RecoveryStateCard({ recoveryState }) {
   if (!recoveryState?.available) return null;
 
-  const { points = [], statement, confidence, nDays, maxBurden = 54 } = recoveryState;
+  const { points = [], statement, maxBurden = 54 } = recoveryState;
   if (points.length < 2) return null;
 
   const plotW = W - PAD.left - PAD.right;
@@ -63,10 +62,7 @@ export function RecoveryStateCard({ recoveryState }) {
     <Card title="Underlying trend" variant="feature">
       <Lumi size={150} state="thinking" className="lumi-deco lumi-deco--br" />
       <div className="stack">
-        <div className="row row--between" style={{ alignItems: 'flex-start' }}>
-          <span className="stat__label">Your reports, and the level behind them</span>
-          <ConfidenceBadge confidence={confidence} nDays={nDays} />
-        </div>
+        <span className="stat__label">Your reports, and the level behind them</span>
 
         <svg
           className="trajectory"
@@ -112,12 +108,6 @@ export function RecoveryStateCard({ recoveryState }) {
         </svg>
 
         {statement && <p className="text-sm">{statement}</p>}
-
-        <p className="text-muted text-xs">
-          The line is an estimate, not something you logged. It is wider where
-          nights are missing, because MyLumi knows less about those days rather
-          than filling them in.
-        </p>
       </div>
     </Card>
   );

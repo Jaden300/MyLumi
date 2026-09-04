@@ -39,10 +39,16 @@ export function RedFlagBanner() {
       >
         <div className="stack stack--tight">
           <p className="text-sm">{finding.detail}</p>
+          {/* caption-ok: safety copy. The app stating its own blindness is the
+              point of this banner - a rule that never fires must never read as
+              an all-clear - and it appears where it is relevant rather than
+              being consolidated onto the About page. */}
           <p className="text-xs">
             MyLumi can't tell whether this is serious - it only sees what you type in.{' '}
             <Link to="/about#red-flags">What to watch for</Link>
           </p>
+          {/* caption-ok: safety copy. Says how many other rules fired, which
+              must not be silently dropped just because one banner shows. */}
           {othersCount > 0 && (
             <p className="text-xs">
               There{othersCount === 1 ? ' is' : ' are'} also {othersCount} other{' '}

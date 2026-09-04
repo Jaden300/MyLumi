@@ -8,6 +8,7 @@
 
 import { getLocalTimezone } from './dates.js';
 import { ROLLOVER_HOUR, SYMPTOM_KEYS, AWAKENING_OPTIONS } from './constants.js';
+import { PAIN_REGION_IDS, PAIN_MIN, PAIN_MAX } from './painRegions.js';
 
 export const SCHEMA_VERSION = 1;
 
@@ -132,4 +133,66 @@ export function sanitizeAwakenings(value) {
   return AWAKENING_OPTIONS.includes(value) ? value : null;
 }
 
-export { clampInt, isObject };
+/**
+ * Like clampInt, but for a scale that moves in half points.
+ *
+ * The difference from clampInt matters: clampInt ROUNDS, so passing 7.5 through
+ * it would store 8 - a rating the user never gave. That rounding is fine where
+ * clampInt is used, because those inputs are discrete buttons that cannot emit
+ * a fraction in the first place. A pain rating can: it arrives from a slider,
+ * and could also arrive from a restored draft or a hand-edited export. So an
+ * off-step value is rejected rather than repaired, on the same principle that
+ * keeps an unanswered field null instead of 0.
+ *
+ * The `* 2` test is exact for every half step in range - 0.5 is a binary
+ * fraction, so 7.5 * 2 === 15 with no floating point slack to allow for.
+ */
+const clampHalfStep = (value, min, max) => {
+  if (!Number.isFinite(value)) return null;
+  if (value < min || value > max) return null;
+  if (value * 2 !== Math.round(value * 2)) return null;
+  return value;
+};
+
+/**
+ * Validate the pain block written by the pain map step.
+ *
+ * Returns null unless the step actually ran. That is the whole point of the
+ * `answered` flag: three states have to stay distinguishable, and an empty
+ * region map cannot carry two of them.
+ *
+ *   null                               the step never ran - unknown
+ *   { answered: true, regions: {} }    asked, and nothing hurt
+ *   { answered: true, regions: {...} } asked, and these did
+ *
+ * Without the flag, "no pain anywhere" and "never asked" would look identical
+ * downstream, and painRegionCount would have to choose between inventing a 0
+ * and discarding a real answer. Both are wrong.
+ */
+export function sanitizePain(raw) {
+  if (!isObject(raw)) return null;
+  if (raw.answered !== true) return null;
+
+  const source = isObject(raw.regions) ? raw.regions : {};
+  const regions = {};
+
+  /* Iterate the known vocabulary rather than the input's keys, mirroring
+     sanitizeSymptoms. An arbitrary key from a hand-edited export cannot land in
+     storage, and a region renamed in code cannot silently keep writing its old
+     id. Null-scored keys drop out here too: a region tapped and then cleared is
+     not an answer, and the dotted-path setter the check-in uses can only write
+     null, never delete. */
+  for (const id of PAIN_REGION_IDS) {
+    const score = clampHalfStep(source[id], PAIN_MIN, PAIN_MAX);
+    if (score !== null) regions[id] = score;
+  }
+
+  /* Deliberately unlike sanitizeSymptoms, which writes null for every missing
+     key. That is right for a fixed nine-item questionnaire, where "not answered"
+     is meaningful per item. It is wrong for 29 regions: storing 27 nulls a night
+     would assert the user said those 27 do not hurt, when what they actually
+     said was which ones do. */
+  return { answered: true, regions };
+}
+
+export { clampInt, clampHalfStep, isObject };

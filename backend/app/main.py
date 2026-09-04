@@ -55,6 +55,20 @@ DEFAULT_ORIGINS = [
 extra = os.environ.get("FRONTEND_ORIGINS", "")
 origins = DEFAULT_ORIGINS + [o.strip() for o in extra.split(",") if o.strip()]
 
+# Unset in production, this used to fall back to localhost-only and start
+# happily. The deployed frontend's requests were then blocked by the browser,
+# which the app could only report as "can't reach the model service" - a config
+# mistake wearing a network outage's clothes, and invisible from both sides.
+# Refuse to start instead. Render sets RENDER=true on every service it runs.
+if os.environ.get("RENDER") and not extra.strip():
+    raise RuntimeError(
+        "FRONTEND_ORIGINS is unset. In production this would leave the CORS "
+        "allowlist at localhost only, and every request from the deployed "
+        "frontend would be blocked by the browser and reported to the user as "
+        "an unreachable service. Set it to the frontend's origin, comma "
+        "separated for more than one."
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

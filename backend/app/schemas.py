@@ -66,6 +66,20 @@ class FeatureRow(BaseModel):
     dstAffected: FiniteInt = None
     nextSymptomBurden: Finite = None
 
+    # Where the person ached, as three aggregates rather than one column per
+    # body region. 29 region columns against the 7-30 rows these models actually
+    # fit would be separable by chance, and would be almost all null besides,
+    # which this project drops rather than imputes. A per-region map is also
+    # closer to an identifier than a measurement.
+    #
+    # painRegionCount is 0 when the user was asked and reported nothing, which
+    # is a real answer. painMax and painMean stay None in that case: a maximum
+    # over an empty set is undefined, and sending 0 would claim the worst pain
+    # measured zero. See painFeatures() in frontend/src/lib/derive.js.
+    painRegionCount: FiniteInt = None
+    painMax: Finite = None
+    painMean: Finite = None
+
     # The 9 PCSS items, sent as symptom_<key> to match the frontend row shape.
     symptom_headache: Finite = None
     symptom_photophobia: Finite = None
@@ -163,12 +177,41 @@ class SentimentPoint(BaseModel):
     nightOf: str
     sentiment: float
     words: int
+    # Lexicon words that produced the score. Sent so that "every score
+    # decomposes into the specific words that produced it" is checkable from a
+    # response, not only by reading the model source.
+    hits: int = 0
+
+
+class SymptomMention(BaseModel):
+    """Symptom words found in one entry. Sparse - nonzero counts only.
+
+    Counts of WORDS, never a judgement about the symptom. What these mean when
+    set against the user's own ratings is worked out in the browser, because
+    doing it here would require holding text and clinical scores in one request.
+    """
+
+    nightOf: str
+    mentions: dict[str, int]
+
+
+class ComplexityFinding(BaseModel):
+    metric: Literal["wordLength", "variety"]
+    direction: Literal["rising", "falling"]
+    tau: float
+    statement: str
+
+
+class ComplexityResponse(Envelope):
+    finding: Optional[ComplexityFinding] = None
 
 
 class NlpResponse(Envelope):
     points: list[SentimentPoint] = Field(default_factory=list)
     trend: Optional[Literal["improving", "declining", "steady"]] = None
     meanSentiment: Optional[float] = None
+    mentions: list[SymptomMention] = Field(default_factory=list)
+    complexity: Optional[ComplexityResponse] = None
 
 
 class SymptomShift(BaseModel):

@@ -97,6 +97,27 @@ describe('analyseJournal failure handling', () => {
     expect(result.points).toEqual([]);
     expect(result.trend).toBeNull();
     expect(result.meanSentiment).toBeNull();
+    expect(result.mentions).toEqual([]);
+    expect(result.complexity).toBeNull();
+  });
+
+  /* The offline envelope is a real rendering path, not an error path, so every
+     field the card reads has to be present in it. A field added to NlpResponse
+     but not here reaches a component as `undefined` rather than as an absence
+     it handles - so this pins the exact key set and fails loudly on the next
+     addition rather than showing a blank line in the UI. */
+  it('offline envelope carries exactly the keys the card reads', async () => {
+    stubFetch(() => Promise.reject(new Error('boom')));
+    const { analyseJournal } = await loadApi();
+    const result = await analyseJournal([]);
+
+    expect(new Set(Object.keys(result))).toEqual(
+      new Set([
+        'available', 'reason', 'confidence', 'nDays',
+        'points', 'trend', 'meanSentiment', 'mentions', 'complexity',
+        'offline',
+      ]),
+    );
   });
 
   it('posts journal text only to the nlp endpoint', async () => {

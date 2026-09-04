@@ -34,10 +34,38 @@ the single documented chokepoint for outbound data. One row per sleep episode:
 | Sleep duration, quality, awakenings, dream recall | Timezone history |
 | Morning mood, energy, readiness | Streak or rescue history |
 | Days since injury | Anything from `meta` or `profile` |
+| Pain: how many areas, worst and mean rating | **Which body areas** |
 
 There is no field in the request schema that could carry free text; a backend
 test (`test_numeric_endpoints_reject_journal_text`) and a frontend test
 (`buildRows › carries no journal text into the payload`) both assert it.
+
+**On pain, the map stays on the device.** The pain map records up to 29 body
+regions per night, and none of those region names cross the wire. Three
+aggregates go instead - `painRegionCount`, `painMax`, `painMean` - for reasons
+that are partly statistical and partly about identifiability.
+
+The statistical half: these models fit on somewhere between 7 and 30 rows, and
+29 extra columns on a design matrix that small are separable by chance. They
+would also be almost entirely null, since a person with one sore knee produces
+one number and 28 blanks every night, and this project drops rows missing a
+feature rather than imputing them - so a per-region column would discard nearly
+the whole dataset while adding 29 more chances for a spurious finding.
+
+The identifiability half: a stable map of where a particular person aches, night
+after night for weeks, is closer to a fingerprint than a measurement. A count
+and a severity are not. Both a backend test
+(`test_pain_crosses_the_wire_as_aggregates_only`) and a frontend test
+(`buildRows › carries no body region names into the payload`) assert it, the
+latter by grepping the serialised payload for every region id.
+
+One detail worth stating because it is exactly the kind of thing this project
+refuses elsewhere: when a user is asked about pain and reports none,
+`painRegionCount` is `0` while `painMax` and `painMean` stay `null`. A count over
+an empty set is genuinely zero. A maximum over an empty set is undefined, and
+sending `0` would assert that the worst pain measured zero - a different claim
+from "no pain was reported", and one that would drag any later average toward
+zero. When the question was never asked at all, all three are `null`.
 
 **Nothing new was added to this table when the per-symptom, latent-state and
 validation models were built.** Those models are built entirely on data that was
@@ -77,8 +105,37 @@ numeric call" a structural property rather than a convention. Tests assert both
 directions - `journal › carries no numeric or clinical data into the payload` is
 the exact inverse of `buildRows › carries no journal text into the payload`.
 
+The **response** is held to the same rule, which matters now that this endpoint
+returns symptom-word counts: a test asserts no numeric clinical field name
+(`symptomBurden`, `sleepQuality`, `sleepDurationHours`, `daysSinceInjury`) can
+appear in an `/v1/nlp` response, so nothing about the clinical record can
+round-trip through the text endpoint.
+
 Text is scored in-process by an inspectable lexicon and discarded with the
 request. It is never stored, never logged, and never used to train anything.
+
+The response carries three things: sentiment points, a direction for how the
+writing itself is changing, and **which symptom words appear on which night**.
+That last one is counts of words, never a judgement.
+
+#### The one comparison that joins text to numbers, and where it happens
+
+There is now a feature that asks whether what someone *writes* lines up with what
+they *rate* - "you wrote about headache on nights you rated it lower". Answering
+that needs journal text and PCSS scores together, which is precisely the pair
+this architecture refuses to put in one request.
+
+So it is not answered on the server. `/v1/nlp` returns word counts and nothing
+else; **the backend never learns what the user rated**. The comparison happens in
+the browser ([`frontend/src/lib/agreement.js`](../frontend/src/lib/agreement.js)),
+joining those counts to the local clinical record by `nightOf`. That module
+imports no API client, and a test asserts it contains no `fetch`, no
+`XMLHttpRequest` and no import of `api.js`, so the join cannot acquire a way to
+transmit its inputs.
+
+This is what the wire boundary buys rather than a workaround for it: a comparison
+that would otherwise require a server to hold someone's private writing beside
+their clinical scores instead happens on the device that already holds both.
 
 #### Consent
 
@@ -124,7 +181,9 @@ No analytics, no trackers, no error reporting, no ad tech.
 | Per-symptom | Mann-Whitney on composition shares + Theil-Sen trends, both Holm-corrected | Composition asks "bad in what way", not "how bad" - raw scores on a heavy day are all high, so comparing them only rediscovers that bad days are bad |
 | Recovery state | Local-linear-trend Kalman filter with an RTS smoother | A self-report is a noisy reading of something unobservable; this estimates the thing rather than treating the reading as the truth |
 | Validation | Rolling-origin (walk-forward) backtesting against a naive baseline | The only honest way to answer "is any of this better than guessing" |
-| Sentiment | Weighted lexicon with negation and intensifiers | Fully auditable; every score decomposes into the words that produced it |
+| Sentiment | Weighted lexicon with negation, intensifiers and suffix normalisation | Fully auditable; every score decomposes into the words that produced it, and the count of those words is returned so that claim is checkable from a response |
+| Symptom mentions | Vocabulary match, with negation and hedges suppressed; compared to ratings **in the browser** | The only feature that joins the two data channels, and it joins them where both already are - nothing crosses the wire to make it |
+| Writing change | Two length-residualised metrics, Kendall tau, Holm-corrected | Describes the entries, never the writer - see the limits below, which are the point of the model rather than a footnote to it |
 
 Deliberately *not* used: gradient boosting, neural networks, or any model whose
 output cannot be explained to a patient in one sentence. A better score is not
@@ -149,6 +208,27 @@ before being rejected:
   reload is not a finding.
 - **Exponential recovery-curve fitting.** The only interesting thing to do with
   the fitted time constant is extrapolate it, and that is a recovery date.
+- **A published sentiment lexicon (VADER, AFINN).** VADER is ~7,500 crowd-rated
+  entries and would end the claim that a human can audit the word list, which is
+  the entire reason the model is a lexicon rather than a classifier. It is also
+  tuned on social media, where `sick` and `killed` are frequently *positive* -
+  the people writing here mean them literally. The hand-written list is ~200
+  entries in five commented groups.
+- **A Porter/Snowball stemmer.** Its output is not human-readable (`recovery` →
+  `recoveri`), so the audit table would have to be written in stems. A dozen
+  legible suffix rules handle the inflections this vocabulary actually takes, and
+  cannot invent a match: a stripped form counts only if it is itself in the list.
+- **Type-token ratio, and its standard corrections.** TTR falls monotonically
+  with text length, severely below 100 tokens - which is every entry in this app.
+  The accepted fixes, MATTR and MSTTR, need a 50- or 100-token window, and
+  **every entry here is shorter than one window**, so the correction is not
+  computable on this data rather than merely awkward.
+- **Sentence-length and syllable-based readability (Flesch-Kincaid, SMOG).** Both
+  need a sentence segmenter, over 2-5 fragments concatenated from three fields,
+  two of which go empty on exactly the days such a metric would appear to detect.
+  These formulas are validated on documents of hundreds of words; applied to a
+  15-word fragment, Flesch-Kincaid is not an approximation of the intended
+  measurement, it is a different measurement wearing its name.
 
 ### What the models measure about themselves
 
@@ -197,6 +277,22 @@ data says so rather than answering thinly:
 | Per-symptom rates | 10 nights with all 9 items rated | Nine simultaneous trend tests need more data than one |
 | Recovery state | 10 logged nights | A slope from seven points has an error bar so wide the model would always say "steady" - a card that can never say anything is worse than no card |
 | Validation | 12 usable pairs | Two out-of-sample errors do not establish an error rate |
+| Text-vs-ratings agreement | 12 nights with **both** journal text and a rating for that symptom, and 4 on each side of the mentioned/silent split | Needs the two records to overlap, which is stricter than either "nights logged" or "entries written" |
+| Writing change | 18 entries with enough content to measure | The highest floor in the app, because it gates the weakest measurement in it |
+
+The writing-change floor was set by measurement rather than by taste. At 18
+entries the model reports a direction on about 4-6% of pure-noise datasets - the
+rate α = 0.05 and an effect-size gate should give - while still detecting a
+planted drift in every trial. Both figures are pinned by tests, because the
+opposite failure mode is the one the recovery-state model already taught this
+project: a floor so high the card can never speak is not caution, it is a card
+that should not exist.
+
+A consequence worth stating: **the demo dataset has 17 measurable entries, so the
+writing-change paragraph does not appear on it.** The floor was left where the
+measurement put it rather than lowered by one to make a demo fuller. That is the
+same call made when the demo's headline correlation first failed Holm - the fix
+was more signal in the generated inputs, never a lower bar.
 
 Their confidence tiers scale with their own floor rather than reusing 14 and 21.
 Otherwise a model needing 14 nights would advertise the top tier on only seven
@@ -224,10 +320,14 @@ differently, and it ends up making the point better than dropping a row does. It
 runs over a continuous timeline, so a missed night is handled by advancing the
 model's prediction with **no observation to correct it against**: the estimate
 carries forward and its uncertainty *grows*. No reading is invented, and the
-band on the chart visibly widens over the gap. The card says so in as many
-words - "it is wider where nights are missing, because MyLumi knows less about
-those days rather than filling them in" - and a test asserts the band after a
+band on the chart visibly widens over the gap. A test asserts the band after a
 gap is strictly wider than before it.
+
+The card used to say this in as many words underneath the chart. That sentence
+has gone with the rest of the caption layer, so the drawing has to carry it: the
+band widens, and the user's own readings stay on the chart as dots beneath the
+estimated line, so an estimate can never be mistaken for something they logged.
+A test pins the dots and the line together for that reason.
 
 That is the same rule the trajectory chart follows when it breaks its line
 across unlogged nights, expressed the other way round: there, missing data means
@@ -296,6 +396,30 @@ State these plainly; they are in the in-app About page too.
   looks as authoritative as the PCSS burden chart. The limits of a lexicon
   scorer are stated on the About page rather than under the card - see the note
   on consolidated caveats below.
+- **Symptom mentions are word matches, not understanding.** The extractor cannot
+  tell a symptom someone *had* from one they were worried about, asked a doctor
+  about, or mentioned to say it had gone. Negation ("no headache today") and
+  hedges ("a bit tired") are suppressed, which handles the common cases and
+  *partially* - not fully - mitigates the rest. And where writing and ratings
+  differ, reporting bias is only one explanation among several: people write
+  about what stood out, not about everything they scored. The card says the two
+  records differ; it does not say which is right, because the app has no basis to
+  decide that about someone's account of their own symptoms.
+- **The writing-change model is the weakest thing in the app.** It reports a
+  direction in how entries are written - shorter words, more repetition - and
+  nothing more. It is not a measure of cognition, and it must not be read as one:
+  being in a hurry, typing on a phone, losing interest in the app, or simply
+  having less to say on a good day all change how someone writes, and every one
+  of them is likelier than a clinical explanation. The card names those
+  alternatives in its own copy rather than leaving the reader to supply the
+  frightening one, and the model is forbidden the vocabulary of cognition,
+  decline and impairment outright - a test asserts that words like *cognitive*,
+  *decline* and *impairment* never appear in anything it generates.
+
+  Why report it at all, if it is this weak? Because a direction in one's own
+  writing is *observable* - a person can open their own entries and check it,
+  which is not true of a claim about their cognition. The model was kept only in
+  the form where the reader can audit the finding themselves.
 - **Wall-clock sleep maths.** Durations spanning a daylight-saving change are an
   hour out; those nights are flagged and excluded from model fits rather than
   silently corrected.
@@ -397,13 +521,40 @@ a claim the product stands behind. What did **not** move:
 - **The red-flag banner** and the emergency symptom list at `/about#red-flags`.
   Safety-critical copy is not consolidated anywhere - it appears at the moment it
   is relevant, on every screen.
-- **Confidence badges and sample sizes** on each finding. Those are data about
-  the finding, not prose about the product, and they belong next to the number
-  they qualify.
 - **Daylight-saving notes** on affected durations, which flag a specific number
   as possibly wrong rather than explaining the feature.
+- **Screen-reader labels**, such as the baseline progress bar's, where the small
+  line is the only thing announcing a graphic that is otherwise `aria-hidden`.
 - **The refusal rules themselves.** Nothing about which findings render changed:
   under seven nights the app still emits no prediction at all.
+
+### The confidence badges and sample sizes have now gone too
+
+An earlier version of this document committed to keeping them, on the reasoning
+that `n` is data about a finding rather than prose about the product. In use they
+read as clutter - a second number competing with the one that matters, on every
+card - and they have been removed along with the caption layer: no "Based on 19
+nights - strength 0.60" under a finding, and no confidence pill beside a card
+title.
+
+What that changes is what is *printed*, and nothing else:
+
+- The server still computes and returns `n`, `rho`, and the confidence tier on
+  every response. Nothing was removed from the models or the wire.
+- Every refusal rule still holds. Under seven complete episodes there is no
+  prediction; the per-symptom, state and validation models still enforce their
+  own higher floors; a symptom whose trend cannot be distinguished from flat is
+  still drawn grey and labelled "not clear yet".
+- Uncertainty is still *shown*, in the place it is hardest to misread: the
+  forecast's interval is the headline rather than the point estimate, and the
+  state model's band widens over nights that were never logged. A band that grows
+  when the model knows less is a better statement of confidence than a pill
+  reading "Early estimate", because it cannot be skimmed past.
+
+The honest cost is worth stating: a reader can no longer tell a finding drawn
+from 8 nights from one drawn from 40 without opening the About page. That is a
+real loss of context, accepted deliberately in exchange for cards that are read
+at all.
 
 ## Verifying these claims
 

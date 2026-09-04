@@ -59,9 +59,69 @@ numpy/scipy, all explainable.
       day-to-day self-report noise.
 - [x] Three cards, hand-rolled SVG. Per-model confidence floors that scale their
       own tiers. Per-section try/except in the batched router.
-- [ ] Stronger NLP - lexicon expansion, linguistic complexity as a cognitive-load
-      proxy, symptom-term extraction with the text-vs-numbers agreement check
-      done client-side. Deferred, not cut.
+- [x] **Stronger NLP** - all three parts, though the middle one ships as
+      something narrower than its name. `models/nlp.py` is now a package: a
+      data-only `lexicon.py` a reviewer can audit in one sitting, a shared
+      `tokens.py` so the scorer and the extractor can never disagree about what
+      a word is, and one file per model.
+
+      - **Lexicon**, 74 → 202 entries in five commented groups, plus suffix
+        rules instead of a stemmer. Measured against a corpus that is half demo
+        seed and half held-out text written for the purpose, because scoring
+        only against the seed measures how well the list matches the corpus it
+        was written from. On the **held-out half**: entries scored 40% → 100%,
+        hit rate 0.055 → 0.245. The old list had partly memorised the demo.
+      - **Symptom-term extraction** + the agreement check, computed in the
+        browser (`lib/agreement.js`) so text and ratings still never meet in one
+        request. Nine symptoms, no significance test - stated plainly rather
+        than dressed up: mention counts are mostly 0 or 1, so a Holm-corrected
+        rank test in JS would return nothing on every real dataset. Hard floors
+        on both group sizes and the effect size, then the single largest gap,
+        which is a stricter filter than Holm rather than a weaker one.
+      - **Writing change** rather than "cognitive load" - see below.
+
+**On what the complexity model became.** The task said "linguistic complexity as
+a cognitive-load proxy". Every standard measure was costed against the app's own
+text and the honest version is narrower than the name.
+
+Entries here are 10-25 tokens (measured from `demoSeed.js`: 4-13 per field).
+Type-token ratio falls monotonically with length below ~100 tokens, and its
+accepted corrections - MATTR, MSTTR - need a 50- or 100-token window. **Every
+entry in this app is shorter than one window**, so the fix is not computable
+rather than merely awkward. Sentence-length and Flesch-Kincaid need a segmenter
+over fragments concatenated from three fields, two of which go empty on exactly
+the days the metric would appear to detect.
+
+Worse, entry length is *correlated with mood* in this app - the "okay day"
+strings are the shortest. A naive complexity trend rediscovers the sentiment
+score and re-presents it as a finding about cognition. So both surviving metrics
+are residualised on entry length before their trend is taken, and the model is
+forbidden the vocabulary of cognition, decline and impairment by a test. It
+describes the writing; the card names the likelier explanations (hurry, a phone
+keyboard, less to say on a good day) rather than leaving the reader to supply
+the frightening one.
+
+The floor, `MIN_FOR_COMPLEXITY = 18`, was set by measurement: **4-6% false
+positives on pure noise, full power on a planted drift**, both pinned by tests.
+The demo has 17 measurable entries, so the paragraph does not appear on it. The
+floor was left where the measurement put it - lowering it by one to fill a demo
+is the same move as lowering a p-value threshold, and this project has already
+refused that once.
+
+**Two bugs found by running against the real demo seed, not fixtures** - which is
+now three times this has paid off:
+
+1. The extractor counted "a bit tired" exactly like "exhausted". The demo's
+   *mildest* string is "A bit tired but okay overall", so hedged mentions landed
+   on the lowest-rated nights and produced a confident finding reading "you wrote
+   about fatigue on nights you rated it lower" - entirely an artefact of
+   weighting a hedge like a report. Diminishers now suppress a mention the way
+   negations do; the sentiment scorer scales them instead, since it has a weight
+   to scale and the extractor has only a count.
+2. Only the straight apostrophe was stripped. iOS and macOS substitute U+2019 by
+   default and most entries will be typed on a phone, so "didn't feel good"
+   tokenised as `didn` + `t` + ..., matched no negation, and scored **positive**
+   on the word `good`.
 
 **On measuring before building.** Each model was prototyped against the
 project's own data-generating process before being planned, and two candidates
@@ -89,6 +149,74 @@ three trials; the fixed-ratio prior wins 24 of 24).
 
 Both 2 and 3 were false negatives found by running the models against the actual
 demo seed rather than only against fixtures - worth doing before every demo.
+
+## Phase 3c - Pain mapping (3D)
+
+The stretch goal in `MyLumi_Plan.md` §9. Tap a 3D body where it aches, rate each
+area 0-10 in half steps, review past areas in history.
+
+- [x] **The rig is the segmentation** (`lib/painPicking.js`). Free rigged models
+      are one `SkinnedMesh`, not fifty per-part meshes, so per-part click
+      handlers are not available - and no pre-segmented body-*region* model
+      exists to download. BodyParts3D and Z-Anatomy are carved anatomically
+      (individual femurs, organs), which is not how a person points at where
+      they hurt. But a rigged model already carries a segmentation: raycast hit
+      -> `face.a/b/c` -> `skinIndex`/`skinWeight` at those vertices -> highest
+      weighted bone -> region. Verified against three.js 0.185.1 source before
+      committing to it (`SkinnedMesh.js:178`, `Mesh.js:478`).
+- [x] 29 regions, bone map, joint detection from weight blends, front/back from
+      the hit normal (`lib/painRegions.js`).
+- [x] `clampHalfStep` + `sanitizePain`, three-state storage model.
+- [x] Aggregates-only wire contract, and the backend fields to receive them.
+- [x] History card + area-count badge, demo seed data.
+- [x] 46 + 18 + 16 + 8 new tests. The 3D components themselves are not unit
+      tested - jsdom has no WebGL - which is affordable only because the picking
+      logic was extracted out and is covered thoroughly in the node suite.
+- [ ] **Drop in a Mixamo GLB** at `frontend/public/models/body.glb` (free Adobe
+      account, T-pose, no animation). Everything else is done and the app is
+      fully usable without it - the region list carries the whole feature.
+- [ ] Tune `JOINT_BLEND_MIN` against the real model; confirm the bone names map.
+
+**Two bugs the tests caught before the model existed**, both of the silent kind:
+
+1. **The reachability test failed on its first run.** "Back of head" was offered
+   in the taxonomy but no bone mapped to it, so it was unselectable - the head
+   is one bone driving both faces, and needed the same front/back treatment as
+   the torso. A region the user can see and never reach is exactly the failure
+   nobody notices in review.
+2. **glTF pads unused influence lanes with `(index 0, weight 0)`,** and bone
+   index 0 on a Mixamo rig is `Hips`, which maps to the lower back. Counting
+   padding would have given `Hips` a vote on every vertex in the model, so a tap
+   on the hand would resolve to the lower back - plausibly, everywhere, with no
+   error. Guarded and pinned by an adversarial test.
+
+**On what "lower right thigh" became.** The request was for sub-regions like the
+lower part of a thigh. Mixamo has one bone per thigh, so there is no second
+joint to segment against, and splitting on vertex height would be an arbitrary
+boundary presented as anatomy. The UI says "right thigh". The id scheme leaves
+room for `thigh_upper_r` as a genuine new region if a real boundary is ever
+found.
+
+**On the a11y position.** A single-`SkinnedMesh` canvas has no keyboard
+interaction and no accessible names, so 3D alone would mean a keyboard or screen
+reader user could not record pain at all. The region list below the canvas is
+not a fallback bolted on afterwards - it is the primary record, and the body is
+a faster way to reach it. It is also what renders when WebGL is missing or the
+model fails to load, and it is what made the whole step testable in jsdom.
+
+**On the correlation search.** Pain aggregates were added to `CANDIDATES`,
+taking it from 4 features to 7, which tightens the Holm bar for the strongest
+finding from alpha/4 to alpha/7. That is the intended behaviour rather than a
+cost to route around. Checked end to end against the real demo seed: the
+headline sleep-duration correlation still clears it at rho = -0.68, and **no
+pain finding was returned** - the features were tested and correctly rejected on
+data where pain follows symptom burden rather than predicting it.
+
+**On the bundle.** three.js is ~980KB, larger than the app itself, and reached
+from one step. It loads behind a `React.lazy` boundary - the app's only code
+split - into its own named chunk. `npm run check:bundle` fails the build if it
+ever leaks into the entry chunk, because that regression breaks nothing visible:
+the app keeps working, every page just gets slower.
 
 ## Phase 4 - Insights & Responsible AI ✅
 

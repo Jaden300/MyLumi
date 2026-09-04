@@ -107,10 +107,9 @@ describe('SymptomProfileCard', () => {
     expect(screen.queryByText('-0.0/wk')).toBeNull();
   });
 
-  it('renders the composition shift finding with its sample size', () => {
+  it('renders the composition shift finding', () => {
     render(<SymptomProfileCard symptoms={symptoms} />);
     expect(screen.getByText(/makes up a larger share/)).toBeTruthy();
-    expect(screen.getByText(/Based on 21 nights/)).toBeTruthy();
   });
 
   it('renders nothing when unavailable', () => {
@@ -197,9 +196,15 @@ describe('RecoveryStateCard', () => {
     expect(titles.some((t) => t.includes('2026-01-06'))).toBe(true);
   });
 
-  it('says plainly that the line is an estimate', () => {
-    render(<RecoveryStateCard recoveryState={recoveryState} />);
-    expect(screen.getByText(/not something you logged/)).toBeTruthy();
+  /* A sentence under the chart used to say the line was an estimate. That copy
+     is gone (docs/design-system.md, "No caption layer"), so the distinction now
+     rests entirely on the drawing: the user's own readings are on the chart as
+     dots, and the estimate is a separate line over them. If the dots ever go,
+     the estimate becomes indistinguishable from something the user logged. */
+  it('keeps the raw readings on the chart beside the estimated line', () => {
+    const { container } = render(<RecoveryStateCard recoveryState={recoveryState} />);
+    expect(container.querySelectorAll('.state__observed').length).toBeGreaterThan(0);
+    expect(container.querySelector('.state__level')).toBeTruthy();
   });
 
   it('renders nothing when unavailable or too short to plot', () => {

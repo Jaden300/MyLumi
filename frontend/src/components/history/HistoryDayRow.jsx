@@ -13,6 +13,7 @@ export function HistoryDayRow({ entry, rescued }) {
   const hasMorning = Boolean(entry.morning);
   const burden = entry.night?.symptomBurden;
   const duration = deriveSleepDuration(entry);
+  const painAreas = Object.keys(entry.night?.pain?.regions ?? {}).length;
 
   if (!hasNight && !hasMorning) {
     return (
@@ -48,6 +49,14 @@ export function HistoryDayRow({ entry, rescued }) {
             </strong>
           ) : (
             <span className="text-muted text-sm">No symptoms logged</span>
+          )}
+          {/* Count only. The burden number above is this row's headline, and a
+              second figure beside it competes with it rather than adding to it -
+              the detail page is where the per-area ratings live. */}
+          {painAreas > 0 && (
+            <span className="badge">
+              {painAreas} {painAreas === 1 ? 'area' : 'areas'}
+            </span>
           )}
           {!hasMorning && <span className="badge badge--partial">Night only</span>}
         </div>

@@ -32,10 +32,17 @@ MIN_FOR_GOOD = 21
 #   AXES   - PCA on 9 variables with fewer observations than variables is
 #            degenerate; below this the second component is noise.
 #   FOLDS  - enough training rows for a first fit plus enough folds to average.
+#   COMPLEX- two metrics over 10-25-token entries, each residualised on entry
+#            length before its trend is taken. This is the highest floor in the
+#            app because it gates the weakest measurement in it: a direction in
+#            how someone writes, from texts short enough that one unusual
+#            sentence moves the number. Eighteen is where a rank correlation on
+#            residuals stops being dominated by the residualisation itself.
 MIN_FOR_STATE = 10
 MIN_FOR_RATES = 10
 MIN_FOR_AXES = 14
 MIN_FOR_VALIDATION = 12
+MIN_FOR_COMPLEXITY = 18
 
 
 def tier_for(n: int) -> Confidence:

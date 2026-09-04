@@ -8,6 +8,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildRows } from '../../hooks/useInsights.js';
+import { PAIN_REGION_IDS } from '../painRegions.js';
 
 const entry = (nightOf, burden) => ({
   nightOf,
@@ -51,6 +52,29 @@ describe('buildRows', () => {
     expect(serialised).not.toContain('private');
     expect(serialised).not.toContain('secret');
     expect(serialised).not.toContain('journal');
+  });
+
+  /* The structural form of the aggregates-only decision. A map of where someone
+     aches, stable across weeks, is closer to an identifier than a measurement,
+     so the wire carries counts and ratings but never region names. Written as a
+     grep over the serialised payload, like the journal test above, so that
+     adding a per-region column later breaks a test rather than passing review. */
+  it('carries no body region names into the payload', () => {
+    const withPain = entry('2026-01-01', 20);
+    withPain.night.pain = {
+      answered: true,
+      regions: { thigh_r: 6.5, lowerback_c: 3, head_front_c: 8 },
+    };
+
+    const serialised = JSON.stringify(buildRows([withPain], null));
+    for (const id of PAIN_REGION_IDS) {
+      expect(serialised, `region id ${id} leaked into the payload`).not.toContain(id);
+    }
+    expect(serialised).not.toContain('regions');
+
+    // The aggregates themselves do go, and are what makes the row useful.
+    expect(serialised).toContain('painRegionCount');
+    expect(JSON.parse(serialised)[0].painMax).toBe(8);
   });
 
   it('drops entries with no night block rather than sending empty rows', () => {

@@ -156,11 +156,18 @@ export async function fetchInsights(rows, daysSinceInjury = null) {
  */
 export async function analyseJournal(texts) {
   const result = await post('/v1/nlp', { texts });
+  /* Every field the card reads must appear here. The offline branch is a real
+     rendering path, not an error path, so a field missing from this envelope
+     reaches a component as `undefined` rather than as an absence it handles. A
+     test pins the exact key set for that reason - adding a field to NlpResponse
+     without adding it here should fail loudly. */
   const offlineEnvelope = () => ({
     ...offline(OFFLINE_MESSAGE),
     points: [],
     trend: null,
     meanSentiment: null,
+    mentions: [],
+    complexity: null,
     offline: true,
   });
   if (!result.ok) return offlineEnvelope();

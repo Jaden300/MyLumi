@@ -4,7 +4,7 @@
    derived fields and streak state, then persist once. */
 
 import { KEYS, draftKeyFor, readJSON, writeJSON, removeKey, clearNamespace, quarantine, readRaw } from './storage.js';
-import { createDefaultData, createEmptyEntry, normalizeData, sanitizeSymptoms, sanitizeAwakenings, clampInt, SCHEMA_VERSION } from './schema.js';
+import { createDefaultData, createEmptyEntry, normalizeData, sanitizeSymptoms, sanitizeAwakenings, sanitizePain, clampInt, SCHEMA_VERSION } from './schema.js';
 import { migrate } from './migrations.js';
 import { computeSymptomBurden } from './derive.js';
 import { recomputeStreakState, refreshRescue, getRescueOffer, applyRescue } from './streak.js';
@@ -122,6 +122,9 @@ function buildNightBlock(values, now) {
     // the forecast. One writer beats recomputing it in six places.
     symptomBurden: computeSymptomBurden(symptoms),
     mood: clampInt(values.mood, MOOD_VAS_MIN, MOOD_VAS_MAX),
+    // null when the pain step never ran, which is distinct from running it and
+    // reporting nothing. See sanitizePain.
+    pain: sanitizePain(values.pain),
     journal: { day: trimText(values.journal?.day), factors: trimText(values.journal?.factors) },
     sleep: {
       plannedBedtime: isValidTime(values.sleep?.plannedBedtime) ? values.sleep.plannedBedtime : null,

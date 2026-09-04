@@ -117,18 +117,36 @@ daily report, streaks, history and red-flag rules are all computed locally. Only
 the four model-backed cards go quiet, and they say so honestly.
 
 ```bash
-cd frontend && npm test                    # 221 tests
-cd backend && .venv/bin/python -m pytest   # 68 tests
+cd frontend && npm test                    # 480 tests
+cd backend && .venv/bin/python -m pytest   # 218 tests
 ```
 
 The suites include the privacy assertions: that journal text never enters a
-numeric payload, that numeric data never enters a text payload, and that no
-generated copy uses causal vocabulary.
+numeric payload, that numeric data never enters a text payload, that body region
+names never leave the device, and that no generated copy uses causal vocabulary.
+
+### The 3D body model
+
+The pain map needs a rigged human model, which is not checked in. Download any
+character from [mixamo.com](https://www.mixamo.com) (free Adobe account) as
+**GLB, T-pose, no animation**, and save it to
+`frontend/public/models/body.glb`.
+
+**Everything works without it.** The model is a faster way to reach the body
+regions, not the only way: the region list below it carries the whole feature,
+and is what renders on a device with no WebGL or when the file is missing. That
+is also the accessibility path, since a WebGL canvas has no keyboard interaction
+of its own.
+
+Body regions are resolved from the model's *rig* rather than from separate
+per-part meshes, so any standard humanoid skeleton works. If the bone names are
+not Mixamo's, a dev-mode warning on the canvas names the ones that did not map
+and points at the table to extend.
 
 ### Seeing it with data
 
-There is a **Load demo data** button on the Your data page - about three weeks of
-generated check-ins. It is never loaded automatically: silently writing fabricated
+There is a **Load demo data** button at the foot of the dashboard - about three
+weeks of generated check-ins. It is never loaded automatically: silently writing fabricated
 clinical entries into someone's storage is the same act as imputing a missing
 score, only larger. While it is loaded, every screen says so.
 
@@ -175,7 +193,7 @@ than a spinner that looks broken. During the event, an external cron job
 
 | Track | Where to look |
 |---|---|
-| Responsible AI | `docs/responsible-ai.md`; the Your data page; the 7-night refusal |
+| Responsible AI | `docs/responsible-ai.md`; the About page's limitations; the 7-night refusal |
 | Best Use of Render | `render.yaml` - both services, one blueprint; real inference, stateless, no database |
 | Best Use of AI/ML | Ridge forecast, Spearman + Holm correlation, MAD anomaly, lexicon NLP |
 | Mental Health | Mood VAS, irritability and brain-fog tracking, journal sentiment |

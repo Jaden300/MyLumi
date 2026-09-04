@@ -19,8 +19,9 @@
       complete by construction; the cost is one refetch per page load, which the
       signature gate already bounds. */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { analyseJournal, isConfigured } from '../lib/api.js';
+import { findAgreement } from '../lib/agreement.js';
 import { buildJournalTexts, journalSignature } from '../lib/journal.js';
 import { useLumiData } from './useLumiData.jsx';
 import { useJournalConsent } from './useJournalConsent.js';
@@ -82,8 +83,30 @@ export function useJournalInsights() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature, consented]);
 
+  /* The text-vs-numbers comparison, computed here because this is where both
+     halves already are: the server's word counts in `state.sentiment`, and the
+     PCSS ratings in local storage.
+
+     NOTHING NEW IS SENT. `findAgreement` imports no API client. Symptom scores
+     appearing in this hook is worth a second look precisely because it is the
+     one place text and numbers meet, so: they meet after the response, on the
+     device, and the result goes to a paragraph and nowhere else.
+
+     Derived FROM `state.sentiment` deliberately. A separate memo over
+     getAllEntries() would compute the same answer and then survive a
+     revocation, because nothing about it depends on the consented fetch. This
+     way it is null the moment the sentiment result is cleared - revocation
+     stays complete by construction rather than by remembering to clear a second
+     piece of state. */
+  const mentions = state.sentiment?.available ? state.sentiment.mentions : null;
+  const agreement = useMemo(
+    () => (mentions ? findAgreement(mentions, getAllEntries()) : null),
+    [mentions, getAllEntries],
+  );
+
   return {
     ...state,
+    agreement,
     configured: isConfigured(),
     consented,
     grantedAt,

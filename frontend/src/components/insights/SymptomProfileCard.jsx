@@ -23,7 +23,6 @@
 
 import { Card } from '../ui/Card.jsx';
 import { Lumi } from '../lumi/Lumi.jsx';
-import { ConfidenceBadge } from './ConfidenceBadge.jsx';
 import { SymptomHeatmap } from './SymptomHeatmap.jsx';
 
 /* The widest weekly change the axis shows. Beyond this a bar is clamped and
@@ -45,7 +44,7 @@ function barWidth(weeklyChange) {
 export function SymptomProfileCard({ symptoms }) {
   if (!symptoms?.available) return null;
 
-  const { rates = [], shifts = [], grid, summary, confidence, nDays } = symptoms;
+  const { rates = [], shifts = [], grid, summary } = symptoms;
   if (!rates.length && !shifts.length) return null;
 
   // Decided trends first, then the rest - the actionable rows should not be
@@ -60,10 +59,7 @@ export function SymptomProfileCard({ symptoms }) {
     <Card title="Symptom by symptom" variant="feature">
       <Lumi size={170} state="presenting" className="lumi-deco lumi-deco--tr" />
       <div className="stack">
-        <div className="row row--between" style={{ alignItems: 'flex-start' }}>
-          <span className="stat__label">How each one has been moving</span>
-          <ConfidenceBadge confidence={confidence} nDays={nDays} />
-        </div>
+        <span className="stat__label">How each one has been moving</span>
 
         {summary && <p className="finding__statement">{summary}</p>}
 
@@ -133,9 +129,6 @@ export function SymptomProfileCard({ symptoms }) {
               {shifts.map((shift) => (
                 <li key={shift.key} className="finding">
                   <p className="finding__statement">{shift.statement}</p>
-                  <p className="text-muted text-xs finding__stats">
-                    Based on {shift.n} nights
-                  </p>
                 </li>
               ))}
             </ul>

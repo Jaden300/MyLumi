@@ -114,11 +114,13 @@ export function LearningCurve({ curve }) {
         </text>
       </svg>
 
+      {/* A key, not a caption: it names which line is which, and without it the
+          chart is two unlabelled lines. The sentence explaining the shading is
+          gone - see docs/design-system.md, "No caption layer". */}
       {comparable && (
         <p className="text-muted text-xs">
           <span className="curve__swatch curve__swatch--model" aria-hidden="true" /> MyLumi
-          <span className="curve__swatch curve__swatch--naive" aria-hidden="true" /> tomorrow = today.
-          {' '}Green shading is where MyLumi was closer - {wins} of {points.length} checks.
+          <span className="curve__swatch curve__swatch--naive" aria-hidden="true" /> tomorrow = today
         </p>
       )}
     </div>
