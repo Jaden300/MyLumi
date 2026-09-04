@@ -191,6 +191,32 @@
   pointer-events: none;
 }
 
+/* The five subject cards on About, in Lumi's warm rather than the brand
+   gradient - a set the eye can find on a page that is otherwise purple. Same
+   masked-ring technique as .card--accent, so the two compose with
+   .card--feature without either one owning the border property. */
+.card--highlight {
+  background: var(--highlight-wash);
+}
+
+.card--highlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--highlight-line);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+.card--highlight .card__title {
+  color: var(--highlight-head);
+}
+
 .card__title {
   margin-bottom: var(--space-2);
   font-size: var(--fs-h3);

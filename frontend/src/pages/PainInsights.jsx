@@ -23,6 +23,7 @@ import { Navigate } from 'react-router-dom';
 import { useLumiData } from '../hooks/useLumiData.jsx';
 import { Card } from '../components/ui/Card.jsx';
 import { Lumi } from '../components/lumi/Lumi.jsx';
+import { SubjectCard } from '../components/about/SubjectCard.jsx';
 import { PainTimeline } from '../components/painmap/PainTimeline.jsx';
 import { RegionTrendChart } from '../components/painmap/RegionTrendChart.jsx';
 import { ProjectedVsActualChart } from '../components/painmap/ProjectedVsActualChart.jsx';
@@ -186,6 +187,10 @@ export function PainInsights() {
               </p>
             </div>
           </Card>
+
+          {/* Only in this branch. On an empty pain page it would describe a
+              feature the reader has not used yet. */}
+          <SubjectCard subject="physical" />
         </>
       )}
     </div>

@@ -16,6 +16,18 @@
   --brand-warm-halo: #f5679a;
   --brand-warm-drip: #f79a5c;
 
+  /* Highlight cards. Lumi's own warm rather than the --caution amber: these
+     cards are informational, and --caution already means "mild concern" to the
+     red-flag banner. Borrowing it would give a card about mental health the
+     colour the app uses to say something may be wrong.
+
+     Unlike the molten-core tokens above, these DO invert with the theme - they
+     are a surface treatment, not the light source, and #ffb265 as text on white
+     is 1.78:1. */
+  --highlight-line: color-mix(in srgb, var(--brand-warm-core) 55%, transparent);
+  --highlight-wash: color-mix(in srgb, var(--brand-warm-core) 7%, var(--surface));
+  --highlight-head: var(--brand-warm-core);
+
   /* Dark theme (default) */
   --bg: #140a2e;
   --surface: #1e1240;
@@ -141,6 +153,12 @@
   --surface-glass: color-mix(in srgb, var(--surface) 82%, transparent);
   --glow-accent: 0 0 60px -14px rgba(176, 28, 130, 0.35);
 
+  /* The wash goes lighter and the head goes much darker. #ffb265 as text on
+     white is 1.78:1; this is 5.21:1, and keeps the hue. */
+  --highlight-line: color-mix(in srgb, var(--brand-warm-core) 65%, transparent);
+  --highlight-wash: color-mix(in srgb, var(--brand-warm-core) 5%, var(--surface));
+  --highlight-head: #a35a12;
+
   color-scheme: light;
 }
 
@@ -179,6 +197,10 @@
 
     --surface-glass: color-mix(in srgb, var(--surface) 82%, transparent);
     --glow-accent: 0 0 60px -14px rgba(176, 28, 130, 0.35);
+
+    --highlight-line: color-mix(in srgb, var(--brand-warm-core) 65%, transparent);
+    --highlight-wash: color-mix(in srgb, var(--brand-warm-core) 5%, var(--surface));
+    --highlight-head: #a35a12;
 
     color-scheme: light;
   }

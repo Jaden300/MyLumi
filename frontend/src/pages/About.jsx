@@ -1,5 +1,6 @@
 import { Card } from '../components/ui/Card.jsx';
 import { Lumi } from '../components/lumi/Lumi.jsx';
+import { SubjectCard } from '../components/about/SubjectCard.jsx';
 
 /* Limitations are stated plainly and in the product, not buried in a README.
    See MyLumi_Plan.md section 4.
@@ -22,6 +23,22 @@ export function About() {
           between the two.
         </p>
       </header>
+
+      {/* What the app is about, before what it cannot do. The honesty cards
+          below then read as this page qualifying its own claims, which is the
+          order that makes both halves credible.
+
+          Three of the five subjects, not all of them: `physical` lives on the
+          pain page and `ml` on insights, each beside the thing it describes.
+          Repeating them here would have shown a reader the identical card twice
+          in one sitting. The last card spans, so three cards in a two-column
+          grid resolve as a pair plus a full-width row rather than leaving an
+          orphan. */}
+      <div className="grid grid--2 grid--loose grid--even">
+        <SubjectCard subject="mental" />
+        <SubjectCard subject="concussion" />
+        <SubjectCard subject="ai" className="grid__span" />
+      </div>
 
       <div className="grid grid--2 grid--loose">
         <Card variant="feature">

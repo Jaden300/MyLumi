@@ -14,6 +14,7 @@ import { InsightsSection } from '../components/insights/InsightsSection.jsx';
 import { WeeklySummaryCard } from '../components/insights/WeeklySummaryCard.jsx';
 import { TrajectoryChart } from '../components/insights/TrajectoryChart.jsx';
 import { JournalSection } from '../components/insights/JournalSection.jsx';
+import { SubjectCard } from '../components/about/SubjectCard.jsx';
 import { Lumi } from '../components/lumi/Lumi.jsx';
 
 export function Insights() {
@@ -44,6 +45,11 @@ export function Insights() {
       {/* Last: the secondary signal sits below the numbers it must never
           outrank. See SentimentCard. */}
       <JournalSection />
+
+      {/* What produced everything above, after the reader has seen it. Placed
+          last on purpose: a description of the method should not arrive before
+          the findings it describes. */}
+      <SubjectCard subject="ml" />
     </div>
   );
 }
