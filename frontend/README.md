@@ -6,7 +6,7 @@ the pieces fit together.
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # vitest - 221 tests
+npm test         # vitest - 608 tests
 npm run build
 ```
 
@@ -23,6 +23,10 @@ quiet, and they say so.
 | `src/lib/journal.js` | **Text outbound chokepoint** (`buildJournalTexts`) + consent |
 | `src/lib/api.js` | The only file that makes network calls |
 | `src/lib/redFlags.js` | Safety rules. Imports no API client, no storage, no React. |
+| `src/lib/painRegions.js` | The region vocabulary and the rig-bone tables that resolve a tap |
+| `src/lib/painPicking.js` | Raycast hit -> body region. No three.js import, so it is testable in node. |
+| `src/lib/painTrajectory.js` | Per-region trends and projections, on-device. Imports no API client. |
+| `src/lib/agreement.js` | What someone wrote vs what they rated, joined on the device |
 | `src/hooks/` | State: `useLumiData` (single source), check-in flow, insights, consent |
 | `src/components/` | UI, grouped by area |
 | `src/pages/` | One per route |
