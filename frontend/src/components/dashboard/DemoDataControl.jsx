@@ -53,7 +53,13 @@ export function DemoDataControl() {
   return (
     <div className="demo-bar">
       <span className="text-sm text-muted">Want to see it with data in it?</span>
-      <Button variant="secondary" onClick={entryCount > 0 ? () => setConfirming(true) : loadDemo}>
+      {/* Wrapped rather than passed directly: loadDemo now forwards its first
+          argument to the generator, and a bare handler reference would hand it
+          a click event to destructure. */}
+      <Button
+        variant="secondary"
+        onClick={entryCount > 0 ? () => setConfirming(true) : () => loadDemo()}
+      >
         Load demo data
       </Button>
     </div>

@@ -98,6 +98,16 @@ said those areas do not hurt, when what they said was which ones do.
 **Region ids are frozen.** Once a night is stored with `thigh_r`, that string is
 in the clinical record; renaming it needs a migration. Adding a new id is free.
 
+**An unmarked region is not a zero.** This falls straight out of the table
+above, but it is worth stating separately because it is the rule the per-region
+trajectory models depend on. `sanitizePain` writes only the regions the user
+marked, so a night where the neck is absent from `regions` carries *no* neck
+rating - not a rating of 0. "My neck was fine" and "I did not mark my neck" are
+indistinguishable in the record, so neither is invented: that night is simply
+absent from the neck's series, and a chart breaks its line across it. Scoring
+the absence as 0 would drag every trend downward and manufacture recoveries
+nobody reported. See [`src/lib/painTrajectory.js`](../frontend/src/lib/painTrajectory.js).
+
 ## Rules that protect the clinical record
 
 **No backfilling, ever.** Check-in routes take no date parameter; the target night is always derived. Retrospective symptom recall is unreliable and would poison training data. A missed night stays missed.

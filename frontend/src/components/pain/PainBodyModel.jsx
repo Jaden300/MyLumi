@@ -64,6 +64,8 @@ export function PainBodyModel({
   onDiagnostics,
   hoveredRegion,
   markedRegions,
+  regionColors,
+  readOnly = false,
 }) {
   const { scene } = useGLTF(MODEL_URL);
   const pointerStart = useRef(null);
@@ -146,19 +148,46 @@ export function PainBodyModel({
     [meshes, boneNames],
   );
 
-  /* Repaint the colour buffer when the hovered or marked set changes.
+  /* Per-region severity colours, when a caller supplies them.
+
+     `regionColors` is `{ regionId: { hex, intensity } }` from lib/painShading.js
+     and is what the timeline drives. It takes precedence over the marked violet
+     because on the timeline every region shown IS a marked region - painting
+     them all one violet would throw away the rating, which is the entire point
+     of that screen. Hover still wins over both, so pointing at the body during
+     playback keeps naming what is under the pointer.
+
+     Resolved into three.js Colors once per change rather than per vertex; the
+     body has enough vertices that parsing a hex string inside the loop is felt. */
+  const shading = useMemo(() => {
+    if (!regionColors) return null;
+    const byIndex = new Map();
+    for (const [id, spec] of Object.entries(regionColors)) {
+      const index = PAIN_REGION_IDS.indexOf(id);
+      if (index < 0 || !spec?.hex) continue;
+      byIndex.set(index, {
+        color: new THREE.Color(spec.hex),
+        intensity: Number.isFinite(spec.intensity) ? spec.intensity : 1,
+      });
+    }
+    return byIndex;
+  }, [regionColors]);
+
+  /* Repaint the colour buffer when the hovered, marked or shaded set changes.
 
      Writes only the vertices whose colour actually differs, then flags the
      attribute for upload. A full rewrite would be correct too, but this runs on
-     every pointer-move across a region boundary and the body has enough
-     vertices for that to be felt on a low-end phone - which is precisely the
-     device this app's users are most likely to be holding. */
+     every pointer-move across a region boundary - and, during timeline
+     playback, on every frame - and the body has enough vertices for that to be
+     felt on a low-end phone, which is precisely the device this app's users are
+     most likely to be holding. */
   useEffect(() => {
     const marked = markedRegions ?? [];
     const hoverIndex = hoveredRegion ? PAIN_REGION_IDS.indexOf(hoveredRegion) : -1;
     const markedIndices = new Set(
       marked.map((id) => PAIN_REGION_IDS.indexOf(id)).filter((i) => i >= 0),
     );
+    const scratch = new THREE.Color();
 
     meshes.forEach((mesh, meshIndex) => {
       const colorAttr = mesh.geometry?.attributes?.color;
@@ -170,12 +199,26 @@ export function PainBodyModel({
         const region = regions[vertex];
         let target = BODY_COLOR;
         if (region !== NO_REGION) {
-          if (region === hoverIndex) target = HOVER_COLOR;
-          else if (markedIndices.has(region)) target = MARKED_COLOR;
+          const shade = shading?.get(region);
+          if (region === hoverIndex) {
+            target = HOVER_COLOR;
+          } else if (shade) {
+            /* Intensity as a blend from the unlit body toward the severity
+               colour, so severity is carried by more than hue alone - a
+               requirement of docs/design-system.md, and the thing that keeps
+               the timeline readable at minimum brightness. */
+            target = scratch.copy(BODY_COLOR).lerp(shade.color, shade.intensity);
+          } else if (markedIndices.has(region)) {
+            target = MARKED_COLOR;
+          }
         }
 
         const offset = vertex * 3;
-        if (colorAttr.array[offset] === target.r && colorAttr.array[offset + 1] === target.g) {
+        if (
+          colorAttr.array[offset] === target.r &&
+          colorAttr.array[offset + 1] === target.g &&
+          colorAttr.array[offset + 2] === target.b
+        ) {
           continue;
         }
         colorAttr.array[offset] = target.r;
@@ -186,7 +229,7 @@ export function PainBodyModel({
 
       if (changed) colorAttr.needsUpdate = true;
     });
-  }, [meshes, vertexRegions, hoveredRegion, markedRegions]);
+  }, [meshes, vertexRegions, hoveredRegion, markedRegions, shading]);
 
   /* Report what the rig actually contains, once, so a model whose bones this
      app has never seen is a visible diagnostic rather than a body that silently
@@ -273,6 +316,13 @@ export function PainBodyModel({
     const start = pointerStart.current;
     pointerStart.current = null;
     if (!start) return;
+
+    /* Read-only mode still orbits and still hovers - it is the timeline, and
+       turning the body to see the back of the head is the point of it. What it
+       must not do is record pain: a tap on a playback view is someone looking,
+       not someone reporting, and writing a rating from it would put a number in
+       the clinical record that nobody entered. */
+    if (readOnly) return;
 
     const slop = start.touch ? TAP_SLOP_TOUCH : TAP_SLOP_MOUSE;
     const moved = Math.hypot(event.clientX - start.x, event.clientY - start.y);

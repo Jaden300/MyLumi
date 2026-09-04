@@ -84,7 +84,7 @@ function ContextRecovery({ onLost }) {
   return null;
 }
 
-export function PainBodyCanvas({ onPickRegion, markedRegions }) {
+export function PainBodyCanvas({ onPickRegion, markedRegions, regionColors, readOnly = false }) {
   const [diagnostics, setDiagnostics] = useState(null);
   const [contextLost, setContextLost] = useState(false);
   const [hovered, setHovered] = useState(null);
@@ -120,6 +120,8 @@ export function PainBodyCanvas({ onPickRegion, markedRegions }) {
           onDiagnostics={setDiagnostics}
           hoveredRegion={hovered}
           markedRegions={markedRegions}
+          regionColors={regionColors}
+          readOnly={readOnly}
         />
         <OrbitControls
           enableDamping

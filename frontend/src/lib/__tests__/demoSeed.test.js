@@ -14,7 +14,8 @@
    one where MyLumi's headline feature finds nothing. That is worth a test. */
 
 import { describe, it, expect } from 'vitest';
-import { buildDemoData } from '../demoSeed.js';
+import { buildDemoData, DEMO_LONG_NIGHTS } from '../demoSeed.js';
+import { buildRegionModels, MIN_NIGHTS_FOR_REGION } from '../painTrajectory.js';
 import { normalizeData } from '../schema.js';
 import { computeSymptomBurden, deriveSleepDuration, isDayComplete } from '../derive.js';
 import { SYMPTOM_KEYS, MAX_SYMPTOM_BURDEN } from '../constants.js';
@@ -258,5 +259,69 @@ describe('buildDemoData', () => {
     const first = Object.keys(data.entries).sort()[0];
     expect(data.profile.injuryDate < first).toBe(true);
     expect(data.profile.onboardedAt).toBeTruthy();
+  });
+
+  /* The pain courses, held to the same standard as the sleep-symptom effect:
+     the structure is planted in the inputs and the real model has to find it.
+     Nothing here asserts a specific slope - only that the demo exercises every
+     answer the trend model can give, at BOTH lengths.
+
+     Without this the demo can silently degrade into one where the pain page
+     shows a wall of "not clear yet", or - worse, and this actually happened -
+     one where a region planted flat reports a confident direction because the
+     generator coupled it to a burden that was itself trending. */
+  describe('pain courses', () => {
+    const modelsFor = (nights) => {
+      const data = buildDemoData(NOW, { nights });
+      const entries = entriesOf(data);
+      return buildRegionModels(entries, { injuryDate: data.profile.injuryDate });
+    };
+
+    for (const nights of [24, DEMO_LONG_NIGHTS]) {
+      it(`shows every trend status at ${nights} nights`, () => {
+        const models = modelsFor(nights);
+        const statuses = models.map((m) => m.trend?.status ?? 'below-floor');
+
+        expect(statuses).toContain('easing');
+        expect(statuses).toContain('unclear');
+        expect(statuses).toContain('below-floor');
+      });
+
+      it(`keeps the flat region genuinely undecidable at ${nights} nights`, () => {
+        const lowerBack = modelsFor(nights).find((m) => m.regionId === 'lowerback_c');
+        expect(lowerBack.n).toBeGreaterThanOrEqual(MIN_NIGHTS_FOR_REGION);
+        expect(lowerBack.trend.status).toBe('unclear');
+      });
+
+      it(`gives the headline region a backtest to show at ${nights} nights`, () => {
+        const neck = modelsFor(nights).find((m) => m.regionId === 'neck_c');
+        expect(neck.trend.status).toBe('easing');
+        expect(neck.backtest.n).toBeGreaterThan(0);
+        expect(typeof neck.backtest.beatsNaive).toBe('boolean');
+      });
+    }
+
+    /* The demo must not be one where the model wins everywhere - that would
+       make the honesty card unreachable and leave "reported whichever way it
+       goes" untested by eye. On this seed at least one region loses to the
+       naive baseline, and that is a feature. */
+    it('contains at least one region the model does not beat the baseline on', () => {
+      const scored = modelsFor(DEMO_LONG_NIGHTS).filter((m) => m.backtest.n > 0);
+      expect(scored.length).toBeGreaterThan(1);
+      expect(scored.some((m) => m.backtest.beatsNaive === false)).toBe(true);
+    });
+
+    /* Gaps are the input the trajectory model has to handle honestly. A demo
+       where every region is rated every night would never exercise the rule
+       that an unmarked night is not a zero. */
+    it('leaves gaps in every region series', () => {
+      const data = buildDemoData(NOW, { nights: DEMO_LONG_NIGHTS });
+      const entries = entriesOf(data);
+      const answered = entries.filter((e) => e.night.pain?.answered).length;
+
+      for (const model of modelsFor(DEMO_LONG_NIGHTS)) {
+        expect(model.n).toBeLessThan(answered);
+      }
+    });
   });
 });

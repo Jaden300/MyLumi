@@ -34,6 +34,20 @@ import { createDefaultData } from './schema.js';
 
 const DEMO_NIGHTS = 24;
 
+/* A longer run, for the pain timeline.
+
+   Deliberately the SAME generator with a different length, not a second
+   dataset. Two generators would drift: someone tuning the pain courses in one
+   would leave the other showing something else, and "the demo" would mean two
+   different things depending on which button was pressed.
+
+   Six weeks rather than three because the per-region models need enough rated
+   nights PER REGION to speak at all. A region reported on 80% of nights across
+   24 gets about 19 ratings, which clears the floor but leaves a thin backtest;
+   across 42 it gets about 34, which is enough for the projected-vs-actual
+   comparison to have something to say. */
+export const DEMO_LONG_NIGHTS = 42;
+
 /* mulberry32 - small, fast, and stable across engines. */
 function makeRandom(seed) {
   let a = seed;
@@ -182,7 +196,7 @@ export function buildDemoData(now = new Date(), { nights = DEMO_NIGHTS } = {}) {
         // Mood tracks burden inversely, with slack - a bad symptom day is not
         // automatically a bad mood day.
         mood: clamp(72 - burden * 1.15 + (random() - 0.5) * 16, 0, 100),
-        pain: buildPain(random, burden),
+        pain: buildPain(random, burden, dayIndex),
         journal: {
           day: rough ? pick(random, ROUGH_DAYS) : good ? pick(random, GOOD_DAYS) : pick(random, OKAY_DAYS),
           factors: rough ? pick(random, ROUGH_FACTORS) : good ? pick(random, GOOD_FACTORS) : '',
@@ -258,11 +272,55 @@ export function buildDemoData(now = new Date(), { nights = DEMO_NIGHTS } = {}) {
    Some nights get an explicit "nothing hurt" answer rather than a skipped
    question, so the demo exercises the empty-but-answered state that the null
    handling in derive.js turns on. */
-const PAIN_COMMON = ['neck_c', 'head_front_c', 'head_back_c'];
-const PAIN_OCCASIONAL = ['shoulder_l', 'shoulder_r', 'upperback_c', 'lowerback_c', 'midback_c'];
+const PAIN_OCCASIONAL = ['shoulder_l', 'shoulder_r', 'upperback_c', 'midback_c'];
 const PAIN_RARE = ['knee_r', 'knee_l', 'hip_r', 'calf_l', 'forearm_r'];
 
-function buildPain(random, burden) {
+/* Per-region courses, for the pain trajectory models.
+
+   The original generator picked a region at random each night and rated it from
+   that night's burden. That is fine for an area COUNT, which is all the wire
+   aggregate needed, but it produces no per-region history worth modelling: every
+   region is an unrelated draw, so no region has a trend, and a per-region model
+   run against it correctly reports "not clear yet" for all of them.
+
+   The fix is the same one the sleep-symptom effect uses - plant the structure in
+   the INPUTS and let the models find it. Each region here gets a course: a start
+   rating, a daily slope, and a probability of being reported on any given night.
+   Nothing downstream is told what the slope was.
+
+   The three shapes are chosen to exercise the three answers the trend model can
+   give, so a demo shows all of them rather than a wall of one:
+
+     neck    - clearly easing, reported most nights (the headline)
+     head    - easing more slowly, reported often
+     lowback - genuinely flat, and must come back "not clear yet"
+
+   The occasional and rare regions keep their old random behaviour, which is
+   what keeps the demo from looking like three tidy lines and nothing else - and
+   they land below the region floor, so they exercise the refusal path too.
+
+   ## burdenCoupling, and the false positive it was added to fix
+
+   Every course was originally nudged by that night's symptom burden, on the
+   reasoning that a rough day hurts more everywhere. That is plausible, and it
+   quietly broke the flat region: burden itself trends downward across the demo,
+   so a region with a slope of exactly zero inherited the burden trend and came
+   back "easing" with a confident interval. Running the model against this seed
+   is what caught it - the region was planted flat and the model was reading a
+   real signal that the generator had put there by accident.
+
+   So coupling is per-course. The two recovering regions keep it, because a
+   correlation with burden is realistic for them and they are meant to trend
+   anyway. The flat region has none, which is what makes it a genuine test of
+   the model's ability to say "not clear yet" rather than a region that is flat
+   in intent and trending in fact. */
+const PAIN_COURSES = [
+  { id: 'neck_c', start: 7.0, slopePerDay: -0.16, reportRate: 0.92, noise: 0.7, burdenCoupling: 1.2 },
+  { id: 'head_front_c', start: 6.0, slopePerDay: -0.09, reportRate: 0.82, noise: 0.8, burdenCoupling: 1.2 },
+  { id: 'lowerback_c', start: 4.8, slopePerDay: 0.0, reportRate: 0.7, noise: 1.1, burdenCoupling: 0 },
+];
+
+function buildPain(random, burden, dayIndex = 0) {
   /* A quiet day sometimes genuinely has nothing to report. The threshold is
      tied to what this seed actually produces - burdens here run from about 14
      to 39 - so that a few nights exercise the answered-but-empty state rather
@@ -280,10 +338,19 @@ function buildPain(random, burden) {
     return Math.min(10, Math.max(0.5, Math.round(score * 2) / 2));
   };
 
-  regions[PAIN_COMMON[Math.floor(random() * PAIN_COMMON.length)]] = rate(2.2);
-  if (random() < 0.45 + severity * 0.3) {
-    regions[PAIN_COMMON[Math.floor(random() * PAIN_COMMON.length)]] = rate(1.8);
+  /* The courses. A region is reported on a night or it is not - and when it is
+     not, nothing is written for it, which is what gives the trajectory model
+     the gaps it has to handle honestly rather than a dense matrix. */
+  for (const course of PAIN_COURSES) {
+    if (random() > course.reportRate) continue;
+    const level =
+      course.start +
+      course.slopePerDay * dayIndex +
+      severity * course.burdenCoupling +
+      (random() - 0.5) * course.noise * 2;
+    regions[course.id] = Math.min(10, Math.max(0.5, Math.round(level * 2) / 2));
   }
+
   if (random() < 0.3 + severity * 0.45) {
     regions[PAIN_OCCASIONAL[Math.floor(random() * PAIN_OCCASIONAL.length)]] = rate(1.5);
   }

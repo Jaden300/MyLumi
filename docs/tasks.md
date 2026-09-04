@@ -283,6 +283,77 @@ the build output, and both are now assertions. Verified: nothing 3D is fetched
 on the dashboard, insights, history or about - the chunk and the model arrive
 only on reaching the pain step.
 
+## Phase 3d - Pain trajectory
+
+Phase 3c shipped the input half of the pain map: a body you can turn, 29
+regions, half-step ratings. It said nothing back. This phase closes the loop -
+per-region trends, projections checked against what actually happened, and the
+timeline playback.
+
+- [x] **Per-region model** (`lib/painTrajectory.js`) - Theil-Sen with a
+      Kendall-rank interval, per region, over only the nights that region was
+      rated. Implemented in JS rather than imported because scipy does not run
+      in a browser and a stats library would be the largest dependency after
+      three.js.
+- [x] **Runs in the browser**, so the wire contract is unchanged. The backend
+      still receives three aggregates and no region names, and both existing
+      privacy tests pass unmodified. A test asserts the module contains no
+      `fetch`, no `XMLHttpRequest` and no import of `api.js` - the same
+      assertion `agreement.js` carries, for the same reason.
+- [x] **Walk-forward backtest** mirroring `models/validation.py`: at each night,
+      refit on only the nights before it. A whole-history fit drawn over its own
+      training data is a model grading its own homework.
+- [x] **Population prior** (`lib/recoveryPrior.js`) - one generic decay shape,
+      applied identically to every region, from the two figures already on the
+      About page. Not per-region, and the header says why not.
+- [x] **Timeline playback** through the `PainBodySurface` seam, widened with
+      `regionColors` and `readOnly` rather than reached around.
+- [x] Charts, region grid, projected-vs-actual table. Hand-rolled SVG.
+- [x] `/pain` route + nav. 56 new tests; suite at 578.
+
+**On what "predict how the pain will evolve" became.** The request included how
+long an area's pain would last and a comparison against typical post-concussion
+data. Both were built as far as they honestly go and no further:
+
+- **Duration is a recovery date.** "Your hip will hurt for about nine more days"
+  is the refusal in `docs/responsible-ai.md` with a different noun on it. The
+  model reports a direction and a range; there is no function that returns days.
+- **There is no per-region literature to compare against.** Published data on
+  concussion symptom course at body-region resolution does not appear to exist.
+  Inventing a hip-specific curve would have produced numbers that look like
+  citations and are not, so the prior is a single general shape used as a
+  shrinkage target and labelled as one wherever it can influence what is shown.
+- **"Projected vs actual" is answered by backtesting instead**, which gives a
+  genuine projected line beside the actual one over the whole history without
+  staging anyone against a norm.
+
+**The rule that needed the most care.** A night a region was not marked is not a
+rating of zero for it. The record cannot tell "my neck was fine" from "I did not
+mark my neck", and scoring the absence as 0 would drag every trend downward and
+manufacture recoveries nobody reported. Regions carry only the nights they were
+actually rated, and the line breaks across the rest.
+
+**What running it against the real seed caught, for the fourth time:**
+
+1. **A region planted flat reported "easing" with a confident interval.** The
+   generator nudged every region by that night's symptom burden, and burden
+   itself trends down across the demo - so a slope of exactly zero inherited the
+   burden trend. The model was reading a real signal the generator had put there
+   by accident. Coupling is now per-course and the flat region has none.
+2. **The lattice problem from Phase 3b bug 3, again and worse.** Half-step
+   ratings make the pairwise slopes discrete, so an interval bound lands exactly
+   on zero constantly. Requiring strict exclusion would report "not clear yet"
+   for obviously trending regions. The straddle test (`lo < 0 < hi`) is the
+   correction, carried over from `symptoms.py` and pinned by its own test here.
+
+**And one bug that 577 passing tests did not catch, found by opening the page.**
+The timeline window is a fixed 60 days; the demo covers 42. Trailing empty
+nights were trimmed and leading ones were not, so the headline feature opened on
+eighteen nights of unlit body captioned "Not logged". Every test passed - the
+component was correctly rendering a frame that should never have been in the
+list. Now trimmed at both ends, with a regression test verified to fail against
+the old code. Middle gaps are still kept: those are real missed nights.
+
 ## Phase 4 - Insights & Responsible AI ✅
 
 - [x] Daily recovery report - shown on completing a morning check-in, not a route

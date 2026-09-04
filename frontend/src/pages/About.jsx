@@ -82,6 +82,24 @@ export function About() {
               Medication, other injuries, and everything else in your life are invisible to it.
             </p>
           </div>
+          {/* The pain page can show a projection, so the two things a reader
+              could over-read there are named here with the other caveats,
+              rather than repeated under the charts. */}
+          <div className="stack stack--tight">
+            <h3 className="limit__head">It will not say how long</h3>
+            <p className="text-muted text-sm">
+              MyLumi does not know how long an area should hurt for, and it will not estimate a
+              date when yours will stop. It shows which way things have been going, and nothing
+              beyond that.
+            </p>
+          </div>
+          <div className="stack stack--tight">
+            <h3 className="limit__head">A pain trend is a trend in what you marked</h3>
+            <p className="text-muted text-sm">
+              People mark what stands out. An area you stop marking has stopped being reported,
+              which is not the same as having stopped hurting, and MyLumi cannot tell those apart.
+            </p>
+          </div>
           <div className="stack stack--tight">
             <h3 className="limit__head">It stays on your device</h3>
             <p className="text-muted text-sm">

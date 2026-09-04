@@ -59,6 +59,72 @@ and a severity are not. Both a backend test
 (`buildRows › carries no body region names into the payload`) assert it, the
 latter by grepping the serialised payload for every region id.
 
+#### Per-region models now exist, and they run in the browser
+
+An earlier version of this document said per-region modelling had been rejected.
+That is no longer true, and the distinction matters: what was rejected was
+**putting 29 region columns on the wire**, and that is still refused. The
+modelling itself now happens, on the device, in
+[`frontend/src/lib/painTrajectory.js`](../frontend/src/lib/painTrajectory.js).
+
+Nothing about the request changed. The wire contract is byte-for-byte what it
+was, both tests above still pass unmodified, and the backend still never learns
+which body part hurts. The model runs where the data already is - the same move
+`agreement.js` makes for joining journal text to ratings, and for the same
+reason. A test asserts `painTrajectory.js` contains no `fetch`, no
+`XMLHttpRequest` and no import of `api.js`, so the join cannot acquire a way to
+transmit its inputs.
+
+The statistical objection above was about a *shared* design matrix at n=7-30
+with 29 sparse columns. A per-region model does not build one: each region is
+fitted separately, on only the nights that region was rated, and reports the `n`
+it actually used. A region rated six times gets no trend at all rather than a
+column of nulls in someone else's fit.
+
+What the per-region model does:
+
+| | |
+|---|---|
+| Trend | Theil-Sen slope with a rank-based interval, per region. `easing`, `worsening`, or `unclear` - and `unclear` is the common answer |
+| Projection | The fitted line, shrunk toward a generic recovery shape by a weight that decays as that region's ratings accumulate |
+| Projected vs actual | Walk-forward: at each night, refit on only the nights before it, then compare to what was reported. Never a whole-history fit drawn over the data it was fitted on |
+| Baseline | Mean absolute error against "this area will feel the same as last night", reported whichever way it comes out |
+
+**The floor is the app's own seven**, counted per region in nights that region
+was rated - which is stricter than "nights logged", the same way the
+text-vs-ratings floor is. Under it, no trend and no projection.
+
+**No duration estimates, ever.** "Your hip pain will last about nine more days"
+is a recovery date with a different noun on it. There is no function in that
+module that returns a number of days, and adding one would be a change of
+policy rather than a feature.
+
+##### The population prior, and what it is honestly built from
+
+The projection leans on a generic recovery shape when a region has few ratings
+([`frontend/src/lib/recoveryPrior.js`](../frontend/src/lib/recoveryPrior.js)).
+Two things about it are worth stating plainly, because this is the weakest part
+of the feature:
+
+- **It is one curve, applied identically to every body region.** There is no
+  hip-specific decay constant, because published data on concussion symptom
+  course *at body-region resolution* does not appear to exist. Writing one
+  anyway would produce a number that looks like a citation and is not - the same
+  move this project refused when it declined to lower a p-value threshold to
+  fill a demo.
+- **It is built from the two figures already on the About page** - symptoms often
+  peak around days 3-5, most people improve substantially within about four
+  weeks - and the one free parameter, the half life, is derived from the second
+  of those by a stated assumption that a reader can argue with. The module says
+  so in its header and a test pins it.
+
+It contributes a *shape*; the magnitude comes from the user's own worst rating
+for that region, so no number asserts anything about how badly a stranger's neck
+hurts. And it is never drawn as a line of its own - see the note below on why
+the trajectory chart still plots no population curve. A prior that moves an
+estimate is a different object from a second line inviting "am I ahead or
+behind?", and only the first one is here.
+
 One detail worth stating because it is exactly the kind of thing this project
 refuses elsewhere: when a user is asked about pain and reports none,
 `painRegionCount` is `0` while `painMax` and `painMean` stay `null`. A count over
@@ -184,6 +250,7 @@ No analytics, no trackers, no error reporting, no ad tech.
 | Sentiment | Weighted lexicon with negation, intensifiers and suffix normalisation | Fully auditable; every score decomposes into the words that produced it, and the count of those words is returned so that claim is checkable from a response |
 | Symptom mentions | Vocabulary match, with negation and hedges suppressed; compared to ratings **in the browser** | The only feature that joins the two data channels, and it joins them where both already are - nothing crosses the wire to make it |
 | Writing change | Two length-residualised metrics, Kendall tau, Holm-corrected | Describes the entries, never the writer - see the limits below, which are the point of the model rather than a footnote to it |
+| Pain per region | Theil-Sen with a rank interval, shrunk toward a generic prior; walk-forward backtest against a naive baseline | Runs **in the browser**, so region names never cross the wire. Rank-based for the same reason the per-symptom model is, and an interval that cannot exclude zero is how a region says "not clear yet" |
 
 Deliberately *not* used: gradient boosting, neural networks, or any model whose
 output cannot be explained to a patient in one sentence. A better score is not
@@ -279,6 +346,7 @@ data says so rather than answering thinly:
 | Validation | 12 usable pairs | Two out-of-sample errors do not establish an error rate |
 | Text-vs-ratings agreement | 12 nights with **both** journal text and a rating for that symptom, and 4 on each side of the mentioned/silent split | Needs the two records to overlap, which is stricter than either "nights logged" or "entries written" |
 | Writing change | 18 entries with enough content to measure | The highest floor in the app, because it gates the weakest measurement in it |
+| Pain per region | 7 nights **with that region rated** | The app's own floor, counted per region rather than per night. A region marked twice is in exactly the position the app already refuses to speak from, and a separate threshold here would let the pain page speak earlier than the forecast does on the same evidence |
 
 The writing-change floor was set by measurement rather than by taste. At 18
 entries the model reports a direction on about 4-6% of pure-noise datasets - the
@@ -358,6 +426,14 @@ in recovery that their good day was "unusual" is a miserable thing to do.
 
 **Refuse to predict a recovery date.** Ever. Trends and ranges only.
 
+This is the rule the pain trajectory feature pressed hardest on, because the
+natural way to ask for it is "how long will my hip hurt for". A duration is a
+recovery date measured from today rather than stated as one, so the answer was
+to build the trend and the projection and stop there. The module has no function
+that returns a number of days, and the page says in its own copy that MyLumi
+does not know how long an area should hurt for and will not estimate when yours
+will stop - rather than leaving the absence to be noticed.
+
 ## Cold-start honesty
 
 Before the threshold, the app shows general population context from the
@@ -420,6 +496,15 @@ State these plainly; they are in the in-app About page too.
   writing is *observable* - a person can open their own entries and check it,
   which is not true of a claim about their cognition. The model was kept only in
   the form where the reader can audit the finding themselves.
+- **The pain prior is one curve for the whole body.** It is not a claim about
+  hips, or necks, or any specific area - it is a general shape borrowed from
+  population figures about concussion symptoms overall, used to stop a fit on
+  seven noisy ratings swinging on noise. Where published per-region data would
+  be needed to do better, this app has none and does not pretend to.
+- **A pain trend is a trend in what was reported, not in tissue.** People mark
+  what stands out. An area that stops being marked has stopped being *reported*,
+  which is not the same as having stopped hurting, and the model cannot tell
+  those apart - it excludes the night rather than guessing which happened.
 - **Wall-clock sleep maths.** Durations spanning a daylight-saving change are an
   hour out; those nights are flagged and excluded from model fits rather than
   silently corrected.
@@ -505,6 +590,23 @@ or behind?", which stages a person's recovery against a norm, and no honest
 population curve exists at 0-54 PCSS resolution to draw. The population context
 is stated on the About page, labelled as general population data, rather than
 beside the chart.
+
+**That still holds now that a population prior exists**, and the distinction is
+worth being precise about rather than waving at. The prior in
+`recoveryPrior.js` moves an estimate when a region has few ratings and then
+fades out; it is never rendered as a series. Nothing on the pain page draws a
+"typical" line beside the user's own, so there is still nothing to be ahead of or
+behind. A number the model leans on and a line a patient compares themselves to
+are different objects, and only the first one is in this app.
+
+The per-region charts follow the same gap rule as the trajectory chart, for the
+same reason and with one extra wrinkle: a night a region was *not marked* is not
+a rating of zero for that region. The stored record cannot distinguish "my neck
+was fine" from "I did not mark my neck", so neither is invented - the night is
+simply absent from that region's series, and the line breaks across it. Treating
+the absence as a zero would have dragged every trend downward and manufactured
+recoveries nobody reported, which makes it the sharpest instance of the
+no-fabrication rule anywhere in the pain feature.
 
 ## Where the caveats live
 

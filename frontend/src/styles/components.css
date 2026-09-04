@@ -1869,3 +1869,200 @@
   color: var(--text-muted);
   font-size: var(--fs-xs);
 }
+
+/* --- pain trajectory ------------------------------------------------------
+   Charts, the region grid and the timeline transport on /pain. Shapes and
+   accessibility rules follow .trajectory above; only the palette differs,
+   because pain has its own 0-10 ramp. */
+
+.pain-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.pain-chart__grid {
+  stroke: var(--border);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.pain-chart__axis {
+  fill: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 8px;
+}
+
+.pain-chart__actual {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Dashed, and never given dots. A solid line with points on it is what the
+   user's own readings look like; the projection must not be able to read as
+   something they logged. */
+.pain-chart__projected {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.pain-chart__point {
+  stroke: var(--surface);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.pain-spark {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pain-spark__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.pain-spark__point {
+  stroke: var(--surface);
+  stroke-width: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+
+.region-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.region-card:hover {
+  border-color: var(--accent);
+}
+
+.region-card[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.region-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.region-card__label {
+  font-weight: 600;
+}
+
+.region-card__status {
+  font-size: var(--fs-xs);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Direction is carried by the word itself, not only by this tint - the tints
+   are a secondary cue, per the colour-alone rule in docs/design-system.md. */
+.region-card__status--easing {
+  color: var(--sev-0);
+  border-color: var(--sev-0);
+}
+
+.region-card__status--worsening {
+  color: var(--sev-4);
+  border-color: var(--sev-4);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.timeline__transport {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.timeline__date {
+  margin: 0;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.timeline__speed select {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+}
+
+.timeline__scrub input {
+  width: 100%;
+}
+
+/* Fixed a couple of lines tall so the body does not jump as the caption goes
+   from one region to four while playing. */
+.timeline__caption {
+  margin: 0;
+  min-height: 2.6em;
+  font-size: var(--fs-sm);
+}
+
+.pain-table__scroll {
+  overflow-x: auto;
+}
+
+.pain-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.pain-table th,
+.pain-table td {
+  padding: var(--space-2);
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.pain-table th:first-child,
+.pain-table td:first-child {
+  text-align: left;
+}
+
+.pain-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+}

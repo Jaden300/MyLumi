@@ -63,6 +63,9 @@ export function AppShell() {
           <NavLink to="/insights" className="navlink">
             Insights
           </NavLink>
+          <NavLink to="/pain" className="navlink">
+            Pain
+          </NavLink>
           <NavLink to="/history" className="navlink">
             History
           </NavLink>

@@ -78,8 +78,11 @@ export function LumiDataProvider({ children }) {
      would interleave fabricated entries with real ones and leave no way to tell
      them apart afterwards - `meta.isDemoData` is a property of the whole blob,
      not of individual entries, so a mixed record could not honestly carry it. */
-  const loadDemo = useCallback(() => {
-    setData(buildDemoData(new Date()));
+  /* `options` reaches buildDemoData unchanged, which is how the longer run for
+     the pain timeline is requested. One generator, two lengths - see the note
+     on DEMO_LONG_NIGHTS in demoSeed.js for why this is not a second dataset. */
+  const loadDemo = useCallback((options) => {
+    setData(buildDemoData(new Date(), options));
   }, []);
 
   const value = useMemo(

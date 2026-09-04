@@ -7,6 +7,7 @@ import { Onboarding } from './pages/Onboarding.jsx';
 import { NightCheckIn } from './pages/NightCheckIn.jsx';
 import { MorningCheckIn } from './pages/MorningCheckIn.jsx';
 import { Insights } from './pages/Insights.jsx';
+import { PainInsights } from './pages/PainInsights.jsx';
 import { History } from './pages/History.jsx';
 import { EntryDetail } from './pages/EntryDetail.jsx';
 import { About } from './pages/About.jsx';
@@ -26,6 +27,7 @@ export default function App() {
               <Route path="checkin/night" element={<NightCheckIn />} />
               <Route path="checkin/morning" element={<MorningCheckIn />} />
               <Route path="insights" element={<Insights />} />
+              <Route path="pain" element={<PainInsights />} />
               <Route path="history" element={<History />} />
               <Route path="history/:nightOf" element={<EntryDetail />} />
               <Route path="about" element={<About />} />

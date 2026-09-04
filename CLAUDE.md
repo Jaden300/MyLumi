@@ -12,6 +12,7 @@ Concussion-recovery journaling app. Hack for Humanity 2026.
 - **Never present as diagnostic.** No diagnoses, no recovery dates, no fabricated confidence.
 - **Never invent data.** An unanswered field stays null - a fabricated 0 enters the clinical record.
   This holds across the network too: rows missing a feature are dropped from a fit, never imputed.
+  An unmarked pain region is not a 0 either - it is absent from that region's series.
 - **No backfilling.** Check-ins only for the current night.
 - **Under 7 complete nights, emit no prediction at all.** Not a hedged one - none.
 - **Journal text only ever goes to `/v1/nlp`**, never as part of a numeric call.
