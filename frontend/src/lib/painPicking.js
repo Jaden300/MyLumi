@@ -152,3 +152,95 @@ export function pickRegion(face, skinIndex, skinWeight, boneNames, facing = 0, o
     onJointMesh,
   );
 }
+
+/* --- per-vertex regions, for highlighting ----------------------------------
+
+   Shading the region under the cursor means knowing, for every vertex, which
+   region it belongs to. That is the same resolution `pickRegion` does, but run
+   over the whole mesh instead of one triangle.
+
+   Computed ONCE per mesh at load and cached, never per frame. The mapping is a
+   property of the model and cannot change while it is on screen, so hovering
+   is then a buffer write over a precomputed table rather than a hundred
+   thousand bone lookups per pointer-move.
+
+   Two deliberate divergences from the tap path, both because a vertex is not a
+   tap:
+
+   - No `facing`. A vertex has a normal, but front and back of the torso are one
+     continuous surface with vertices all around it, and shading only the front
+     half of the chest would draw a hard seam down the model's side where no
+     anatomical boundary exists. So the torso highlights as a whole ring and the
+     TAP still resolves front from back. The highlight is a pointer, not the
+     answer; the region name in the list is the answer.
+   - No joint-mesh path. That depends on which mesh was hit, which is decided
+     per mesh here rather than per vertex, so the caller passes it in. */
+
+/** Sentinel for a vertex belonging to no region. Never a valid region index. */
+export const NO_REGION = 255;
+
+/**
+ * Resolve every vertex in a skinned mesh to an index into `regionIds`.
+ *
+ * @param {{array: ArrayLike<number>, itemSize: number, count: number}} skinIndex
+ * @param {{array: ArrayLike<number>, itemSize: number, count: number}} skinWeight
+ * @param {string[]} boneNames normalized, in skinIndex order
+ * @param {string[]} regionIds the region vocabulary; results index into this
+ * @param {boolean} [onJointMesh] whether this mesh is joint geometry
+ * @returns {Uint8Array} one entry per vertex, `NO_REGION` where nothing maps
+ */
+export function buildVertexRegions(
+  skinIndex,
+  skinWeight,
+  boneNames,
+  regionIds,
+  onJointMesh = false,
+) {
+  const count = skinWeight?.count ?? 0;
+  const out = new Uint8Array(count).fill(NO_REGION);
+  if (!count || !skinIndex?.array || !skinWeight?.array || !boneNames?.length) return out;
+
+  const regionIndex = new Map(regionIds.map((id, i) => [id, i]));
+
+  /* Most vertices in a rigged body share an influence pattern with their
+     neighbours - a whole limb binds to one bone at full weight. Keying the
+     memo on the raw lanes collapses that to a handful of distinct lookups for
+     a mesh with a hundred thousand vertices. */
+  const memo = new Map();
+
+  for (let vertex = 0; vertex < count; vertex += 1) {
+    // Reuse rankInfluences by presenting the single vertex as a degenerate
+    // triangle, so the zero-weight padding guard and the normalization are the
+    // same code the tap path uses rather than a second copy of them.
+    const face = { a: vertex, b: vertex, c: vertex };
+    const key = laneKey(vertex, skinIndex, skinWeight);
+
+    let resolved = memo.get(key);
+    if (resolved === undefined) {
+      const region = resolveRegionFromBones(
+        rankInfluences(face, skinIndex, skinWeight, boneNames),
+        0,
+        onJointMesh,
+      );
+      resolved = region !== null && regionIndex.has(region) ? regionIndex.get(region) : NO_REGION;
+      memo.set(key, resolved);
+    }
+
+    out[vertex] = resolved;
+  }
+
+  return out;
+}
+
+/** Stable key for one vertex's four influence lanes, for the memo above. */
+function laneKey(vertex, skinIndex, skinWeight) {
+  const indexStride = skinIndex.itemSize ?? 4;
+  const weightStride = skinWeight.itemSize ?? 4;
+  let key = '';
+  for (let lane = 0; lane < weightStride; lane += 1) {
+    const weight = skinWeight.array[vertex * weightStride + lane];
+    if (!Number.isFinite(weight) || weight <= 0) continue;
+    key += `${skinIndex.array[vertex * indexStride + lane]}:${weight};`;
+  }
+  return key;
+}

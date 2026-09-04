@@ -9,7 +9,7 @@
 <p align="center">
   <a href="#run-it-locally"><img alt="React 19" src="https://img.shields.io/badge/React-19-4C1D95?style=flat-square&logo=react&logoColor=white"></a>
   <a href="#run-it-locally"><img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-stateless-D6249F?style=flat-square&logo=fastapi&logoColor=white"></a>
-  <img alt="Tests" src="https://img.shields.io/badge/tests-412%20passing-4ADE80?style=flat-square">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-714%20passing-4ADE80?style=flat-square">
   <img alt="Local first" src="https://img.shields.io/badge/data-local%20first-4C1D95?style=flat-square">
 </p>
 
@@ -117,7 +117,7 @@ daily report, streaks, history and red-flag rules are all computed locally. Only
 the four model-backed cards go quiet, and they say so honestly.
 
 ```bash
-cd frontend && npm test                    # 480 tests
+cd frontend && npm test                    # 496 tests
 cd backend && .venv/bin/python -m pytest   # 218 tests
 ```
 
@@ -139,6 +139,17 @@ every vertex is weighted to the bones that move it, and summing those weights
 names the body part. That matters because no pre-segmented body-*region* model
 exists to download: the open anatomical datasets are carved into individual
 femurs and organs, which is not how a person points at where they hurt.
+
+The same weights drive the hover highlight. Resolving a region per vertex is the
+identical computation, so it is done once when the model loads and cached as a
+region index per vertex; hovering then only rewrites a colour buffer. Pointing
+at the body lights the region a tap would take and names it, so a mis-aimed tap
+is visible before it becomes an entry rather than after. Marked regions stay
+shaded in a deeper violet - a different direction from the hover lift, not a
+second brightness step, because "what a tap would take" and "what is already
+recorded" are different statements and are usually on screen together. Neither
+uses a severity colour: shading a region red would be the app asserting how bad
+it is before the user has rated it.
 
 Swapping the model is therefore just replacing the file - any standard humanoid
 skeleton works, and all 65 bones of this one map. If a replacement's bones are

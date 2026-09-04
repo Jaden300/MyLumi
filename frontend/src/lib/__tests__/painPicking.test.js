@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { rankInfluences, resolveRegionFromBones, pickRegion } from '../painPicking.js';
-import { JOINT_BLEND_MIN } from '../painRegions.js';
+import {
+  rankInfluences,
+  resolveRegionFromBones,
+  pickRegion,
+  buildVertexRegions,
+  NO_REGION,
+} from '../painPicking.js';
+import { JOINT_BLEND_MIN, PAIN_REGION_IDS } from '../painRegions.js';
 
 /* Fabricated skin data - no three.js, no GLB, no WebGL.
 
@@ -21,8 +27,8 @@ function makeSkinData(perVertex, { ArrayType = Float32Array } = {}) {
   });
 
   return {
-    skinIndex: { array: skinIndex, itemSize: lanes },
-    skinWeight: { array: skinWeight, itemSize: lanes },
+    skinIndex: { array: skinIndex, itemSize: lanes, count: perVertex.length },
+    skinWeight: { array: skinWeight, itemSize: lanes, count: perVertex.length },
   };
 }
 
@@ -265,6 +271,89 @@ describe('joint geometry', () => {
 
   it('lets joint geometry outrank a front/back split', () => {
     expect(resolveRegionFromBones([{ name: 'LeftUpLeg', weight: 1 }], -1, true)).toBe('hip_l');
+  });
+});
+
+/* The table that drives the hover highlight. Its correctness matters in a
+   quieter way than the tap path: a wrong entry does not record wrong data, it
+   shades the wrong part of the body while the user is deciding - which is
+   arguably worse, since it invites them to record something they did not mean. */
+describe('buildVertexRegions', () => {
+  const build = (perVertex, onJointMesh = false) => {
+    const { skinIndex, skinWeight } = makeSkinData(perVertex);
+    return buildVertexRegions(skinIndex, skinWeight, BONES, PAIN_REGION_IDS, onJointMesh);
+  };
+
+  const regionAt = (table, vertex) =>
+    table[vertex] === NO_REGION ? null : PAIN_REGION_IDS[table[vertex]];
+
+  it('resolves each vertex independently of its neighbours', () => {
+    const table = build([[[3, 1]], [[4, 1]], [[5, 1]]]);
+    expect(regionAt(table, 0)).toBe('hand_l');
+    expect(regionAt(table, 1)).toBe('thigh_l');
+    expect(regionAt(table, 2)).toBe('calf_l');
+  });
+
+  it('returns one entry per vertex', () => {
+    expect(build([[[3, 1]], [[3, 1]], [[3, 1]], [[3, 1]]])).toHaveLength(4);
+  });
+
+  /* The same padding trap as the tap path, in the form that would tint the
+     entire body as lower back. */
+  it('ignores zero-weight padding rather than marking everything lower back', () => {
+    const table = build([[[3, 1]], [[1, 1]]]);
+    expect(regionAt(table, 0)).toBe('hand_l');
+    expect(regionAt(table, 1)).toBe('upperarm_l');
+  });
+
+  it('marks a vertex that maps to nothing as NO_REGION rather than guessing', () => {
+    const { skinIndex, skinWeight } = makeSkinData([[[3, 1]], [[3, 1]]]);
+    // A bone-name array that covers no mapped region at all.
+    const table = buildVertexRegions(
+      skinIndex,
+      skinWeight,
+      ['LeftEye', 'RightEye', 'Jaw', 'Tongue'],
+      PAIN_REGION_IDS,
+    );
+    expect([...table]).toEqual([NO_REGION, NO_REGION]);
+  });
+
+  it('reads a blended vertex as the joint, matching the tap path', () => {
+    const blend = [
+      [4, 0.5],
+      [5, 0.5],
+    ];
+    expect(regionAt(build([blend]), 0)).toBe('knee_l');
+  });
+
+  it('honours joint geometry when the mesh is joint geometry', () => {
+    expect(regionAt(build([[[5, 1]]], true), 0)).toBe('knee_l');
+    expect(regionAt(build([[[5, 1]]], false), 0)).toBe('calf_l');
+  });
+
+  /* Every index this writes is used to look up PAIN_REGION_IDS, so one out of
+     range would read undefined and shade nothing, silently. */
+  it('only ever emits valid region indices or the sentinel', () => {
+    const table = build([[[1, 1]], [[3, 1]], [[6, 1]], [[99, 1]]]);
+    for (const value of table) {
+      expect(value === NO_REGION || PAIN_REGION_IDS[value] !== undefined).toBe(true);
+    }
+  });
+
+  it('survives missing attributes without throwing', () => {
+    expect(buildVertexRegions(null, null, BONES, PAIN_REGION_IDS)).toHaveLength(0);
+    const { skinIndex, skinWeight } = makeSkinData([[[3, 1]]]);
+    expect([...buildVertexRegions(skinIndex, skinWeight, [], PAIN_REGION_IDS)]).toEqual([
+      NO_REGION,
+    ]);
+  });
+
+  /* The memo is the reason this is affordable at load time. If it ever keyed
+     on something unstable, vertices with identical influences would resolve
+     separately and the cost would return without any test noticing. */
+  it('gives identical influences identical results', () => {
+    const table = build([[[3, 1]], [[3, 1]], [[3, 1]]]);
+    expect(new Set(table).size).toBe(1);
   });
 });
 

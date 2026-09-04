@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import { MODEL_URL, PainBodyModel } from './PainBodyModel.jsx';
+import { formatRegionLabel } from '../../lib/painRegions.js';
 
 /**
  * Fetch and parse the model, resolving when it is in drei's cache.
@@ -83,9 +84,10 @@ function ContextRecovery({ onLost }) {
   return null;
 }
 
-export function PainBodyCanvas({ onPickRegion }) {
+export function PainBodyCanvas({ onPickRegion, markedRegions }) {
   const [diagnostics, setDiagnostics] = useState(null);
   const [contextLost, setContextLost] = useState(false);
+  const [hovered, setHovered] = useState(null);
 
   /* A rig whose bones this app does not recognise produces a body that ignores
      every tap, with no error anywhere - the worst way for this to fail. In dev
@@ -95,7 +97,7 @@ export function PainBodyCanvas({ onPickRegion }) {
     import.meta.env.DEV && diagnostics && diagnostics.mapped === 0 && diagnostics.boneCount > 0;
 
   return (
-    <div className="pain-surface">
+    <div className="pain-surface" data-hovering={hovered ? 'true' : undefined}>
       <Canvas
         /* A Mixamo export stands on the ground plane, so its origin is between
            the feet rather than at its centre. Aiming at 0.95 puts the camera on
@@ -112,7 +114,13 @@ export function PainBodyCanvas({ onPickRegion }) {
       >
         <ContextRecovery onLost={setContextLost} />
         <Lights />
-        <PainBodyModel onPickRegion={onPickRegion} onDiagnostics={setDiagnostics} />
+        <PainBodyModel
+          onPickRegion={onPickRegion}
+          onHoverRegion={setHovered}
+          onDiagnostics={setDiagnostics}
+          hoveredRegion={hovered}
+          markedRegions={markedRegions}
+        />
         <OrbitControls
           enableDamping
           dampingFactor={0.08}
@@ -135,6 +143,13 @@ export function PainBodyCanvas({ onPickRegion }) {
           autoRotate={false}
         />
       </Canvas>
+
+      {/* Name the highlighted region. The shading alone says "this area" but
+          not which area it is called, and the boundary between a calf and a
+          knee is not something a person can read off a tint. Naming it before
+          the tap is also what makes a mis-picked region correctable without
+          having to mark it and undo it. */}
+      {hovered && <p className="pain-surface__hovered">{formatRegionLabel(hovered)}</p>}
 
       {unmappedWarning && (
         <p className="pain-surface__diagnostic">

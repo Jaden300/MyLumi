@@ -1657,6 +1657,29 @@
   touch-action: auto;
 }
 
+/* A pointer over a mappable region should say so before the click. Set on the
+   wrapper rather than the canvas because R3F owns the canvas element. */
+.pain-surface[data-hovering='true'] { cursor: pointer; }
+
+/* The name of the region under the pointer, over the canvas.
+
+   Bottom-left rather than following the cursor: a label chasing the pointer
+   across a 3D body is exactly the kind of restless motion this app avoids, and
+   a fixed position is easier to read when your eyes are the symptom. */
+.pain-surface__hovered {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  pointer-events: none;
+}
+
 .pain-surface__diagnostic {
   position: absolute;
   inset: auto 0 0 0;

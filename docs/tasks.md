@@ -169,15 +169,33 @@ area 0-10 in half steps, review past areas in history.
 - [x] `clampHalfStep` + `sanitizePain`, three-state storage model.
 - [x] Aggregates-only wire contract, and the backend fields to receive them.
 - [x] History card + area-count badge, demo seed data.
-- [x] 46 + 18 + 16 + 8 new tests. The 3D components themselves are not unit
+- [x] 46 + 27 + 16 + 8 new tests. The 3D components themselves are not unit
       tested - jsdom has no WebGL - which is affordable only because the picking
-      logic was extracted out and is covered thoroughly in the node suite.
+      logic was extracted out and is covered thoroughly in the node suite. That
+      extraction is what let the hover table be tested too: `buildVertexRegions`
+      is pure, so its nine tests run in node with no canvas.
 - [x] **The model is in**, converted from the supplied FBX with `FBX2glTF` and
       checked in at `frontend/public/models/body.glb` (1.9MB). All 65 of its
       bones map, zero unmapped.
 - [x] Verified end to end in a real browser against the real model: taps on the
       head, arms, hands, chest, thighs, calves and feet all resolve, with
       correct anatomical mirroring (screen-left is the model's right).
+- [x] **Hover highlighting** (`buildVertexRegions` in `lib/painPicking.js`).
+      Pointing at the body shades the region a tap would take and names it in a
+      corner label. Resolving a region per vertex is the same computation the
+      tap does, so it runs once at load into a region-index-per-vertex table and
+      hovering only rewrites a colour buffer - the alternative, resolving bone
+      weights per pointer-move, is the same work times a hundred thousand
+      vertices times every frame. Marked regions hold a deeper violet, a
+      different direction from the hover lift rather than a second brightness
+      step, because both are commonly on screen at once. Neither is a severity
+      colour. Swept the whole canvas in a browser: 17 distinct regions reachable
+      by pointing, all correctly mirrored.
+- [x] Rotation confirmed unrestricted: `enableRotate` and the azimuth limits are
+      left at their three.js defaults (`+/-Infinity`), so horizontal spin is a
+      free 360. Polar is deliberately clamped to 0.1-0.9 pi and pan is off.
+      Verified by driving drags in all four directions and checking the rendered
+      pixels actually changed, rather than by reading the config.
 
 **What measuring the real model changed.** Three things, none of which could
 have been settled without the file:

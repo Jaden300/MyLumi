@@ -76,11 +76,11 @@ export function PainMapStep({ values, setValue }) {
   return (
     <div className="stack stack--loose">
       <p className="text-muted text-sm">
-        Tap anywhere on the body that aches, then rate it. Drag to turn the model, pinch or
-        scroll to zoom.
+        Point at the body to highlight an area, then tap it to mark it and rate it. Drag to turn
+        the model, pinch or scroll to zoom.
       </p>
 
-      <PainBodySurface onPickRegion={pick} />
+      <PainBodySurface onPickRegion={pick} markedRegions={selectedIds} />
 
       <PainRegionList
         selectedIds={selectedIds}
