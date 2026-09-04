@@ -809,10 +809,44 @@
 
 /* --- about ------------------------------------------------------------------ */
 
+/* The limitations list. This is the most important prose in the app - it is the
+   product refusing to overclaim - and it was the hardest to read: eight items
+   of 14px muted text in three columns, which on a wide screen gave lines short
+   enough to break mid-thought and on a phone stacked into an undifferentiated
+   wall.
+
+   Contrast was never the problem: --text-muted on the accent card measures
+   8.3:1 in dark, well over the 4.5:1 floor. Size, measure and rhythm were. So:
+   two columns instead of three (a readable measure at this font size), body
+   size instead of --fs-sm, and a rule above each heading so the eye can find
+   where one limitation ends and the next begins. */
+.limit-grid {
+  display: grid;
+  gap: var(--space-5) var(--space-6);
+  margin-top: var(--space-4);
+}
+
+@media (min-width: 720px) {
+  .limit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.limit {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
 .limit__head {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text);
+  margin-bottom: var(--space-2);
+}
+
+/* Full body size, not --fs-sm. These sentences carry the app's honesty; they
+   should not be the smallest text on the page. */
+.limit__body {
+  color: var(--text-muted);
+  line-height: 1.65;
 }
 
 /* Two columns of symptoms where there is room. Someone scanning this list under
@@ -1030,10 +1064,78 @@
   vector-effect: non-scaling-stroke;
 }
 
+/* 8px was unreadable on a phone and indefensible for a user group with light
+   sensitivity and cognitive fatigue. These are scaled in viewBox units against
+   a 320-unit width, so 11 renders around 13-15px on a typical card. */
 .trajectory__axis {
   fill: var(--text-muted);
   font-family: var(--font-body);
-  font-size: 8px;
+  font-size: 11px;
+}
+
+/* The units the numbers are in. Without this the y axis was three bare numbers
+   - 0, 27, 54 - and nothing on screen said what they counted or that 54 was
+   the top of a fixed scale rather than this user's worst night. */
+.trajectory__axis-title {
+  fill: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Key for the dots. The design system permits "a two-word chart key" at
+   --fs-xs; this is that, and it is the difference between a coloured dot
+   meaning something and a coloured dot being decoration. */
+.trajectory__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.trajectory__key {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.trajectory__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: none;
+}
+
+/* The severity ramp as a continuous strip, so "warmer means heavier" is shown
+   rather than asserted. Ends are labelled; the middle needs no numbers. */
+.trajectory__ramp {
+  display: inline-block;
+  width: 76px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--sev-0), var(--sev-1), var(--sev-2), var(--sev-3),
+    var(--sev-4), var(--sev-5), var(--sev-6)
+  );
+}
+
+.trajectory__line-key {
+  width: 20px;
+  height: 0;
+  flex: none;
+  border-top: 2px solid var(--accent);
+}
+
+.trajectory__dash-key {
+  width: 20px;
+  height: 0;
+  flex: none;
+  border-top: 1px dashed var(--text-muted);
 }
 
 .trajectory__mean {
@@ -1059,10 +1161,16 @@
   vector-effect: non-scaling-stroke;
 }
 
-/* Severe nights get a ring as well as a warmer fill - never colour alone. */
+/* Severe nights get a ring as well as a warmer fill - never colour alone.
+
+   The ring also carries the contrast: --sev-6 (#be123c) is 2.75:1 on the dark
+   surface, under the 3:1 floor for non-text, and it is by design the darkest
+   end of the ramp so it cannot simply be lightened without flattening the
+   scale. A --text ring puts a 15:1 edge around the dot, which is what makes
+   the heaviest nights the most visible rather than the least. */
 .trajectory__point--high {
   stroke: var(--text);
-  stroke-width: 1.5;
+  stroke-width: 2;
 }
 
 /* A programmatic focus target, not an interactive control - the ring would be

@@ -67,59 +67,59 @@ export function About() {
       <Card variant={['feature', 'accent']}>
         <Lumi size={240} state="reading" className="lumi-deco lumi-deco--tr" />
         <h2 className="card__title">What it can and cannot tell you</h2>
-        <div className="grid grid--3" style={{ marginTop: 'var(--space-4)' }}>
-          <div className="stack stack--tight">
+        <div className="limit-grid">
+          <div className="limit">
             <h3 className="limit__head">It is all self-reported</h3>
-            <p className="text-muted text-sm">
+            <p className="limit__body">
               How you rate a symptom depends on your mood, memory, and what you compare it against.
             </p>
           </div>
-          <div className="stack stack--tight">
+          <div className="limit">
             <h3 className="limit__head">A pattern is not a cause</h3>
-            <p className="text-muted text-sm">
+            <p className="limit__body">
               If poor sleep and bad days occur together, MyLumi cannot tell you which drove which.
             </p>
           </div>
-          <div className="stack stack--tight">
+          <div className="limit">
             <h3 className="limit__head">It is only your data</h3>
-            <p className="text-muted text-sm">
+            <p className="limit__body">
               Findings come from your entries alone, not a population study. Estimates are estimates,
               not medical predictions.
             </p>
           </div>
-          <div className="stack stack--tight">
+          <div className="limit">
             <h3 className="limit__head">It waits before speaking</h3>
-            <p className="text-muted text-sm">
+            <p className="limit__body">
               Under a week of entries it says nothing at all rather than guessing.
             </p>
           </div>
-          <div className="stack stack--tight">
+          <div className="limit">
             <h3 className="limit__head">It cannot see the rest</h3>
-            <p className="text-muted text-sm">
+            <p className="limit__body">
               Medication, other injuries, and everything else in your life are invisible to it.
             </p>
           </div>
           {/* The pain page can show a projection, so the two things a reader
               could over-read there are named here with the other caveats,
               rather than repeated under the charts. */}
-          <div className="stack stack--tight">
+          <div className="limit">
             <h3 className="limit__head">It will not say how long</h3>
-            <p className="text-muted text-sm">
+            <p className="limit__body">
               MyLumi does not know how long an area should hurt for, and it will not estimate a
               date when yours will stop. It shows which way things have been going, and nothing
               beyond that.
             </p>
           </div>
-          <div className="stack stack--tight">
+          <div className="limit">
             <h3 className="limit__head">A pain trend is a trend in what you marked</h3>
-            <p className="text-muted text-sm">
+            <p className="limit__body">
               People mark what stands out. An area you stop marking has stopped being reported,
               which is not the same as having stopped hurting, and MyLumi cannot tell those apart.
             </p>
           </div>
-          <div className="stack stack--tight">
+          <div className="limit">
             <h3 className="limit__head">It stays on your device</h3>
-            <p className="text-muted text-sm">
+            <p className="limit__body">
               No account, no analytics, no trackers. Your journal text is only ever sent if you
               switch that on yourself.
             </p>

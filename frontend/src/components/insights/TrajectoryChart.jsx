@@ -28,10 +28,25 @@ import { MAX_SYMPTOM_BURDEN } from '../../lib/constants.js';
 
 const RANGE_DAYS = 30;
 
-/* A viewBox in abstract units; CSS scales it to the card. */
+/* A viewBox in abstract units; CSS scales it to the card.
+
+   Taller than it was, and with far more left padding. The old 26 units held
+   three bare numbers with no room to say what they measured, and 8px type at
+   this scale was unreadable on the phone-in-a-dark-room this app is built for.
+   The extra height is what lets the axis labels grow without the plot area
+   collapsing. */
 const W = 320;
-const H = 140;
-const PAD = { top: 8, right: 8, bottom: 20, left: 26 };
+const H = 190;
+const PAD = { top: 14, right: 10, bottom: 34, left: 52 };
+
+/* The y axis is a fixed clinical scale, not a data range - so it gets named
+   ticks rather than only numbers. Someone reading "54" has no way to know it is
+   the ceiling of PCSS rather than this user's worst night. */
+const Y_TICKS = [
+  { value: 0, label: 'None' },
+  { value: MAX_SYMPTOM_BURDEN / 2, label: 'Moderate' },
+  { value: MAX_SYMPTOM_BURDEN, label: 'Severe' },
+];
 
 export function TrajectoryChart() {
   const { getEntryRange, profile } = useLumiData();
@@ -69,14 +84,24 @@ export function TrajectoryChart() {
     <Card title="Recovery trajectory" variant="feature">
       <Lumi size={150} state="thinking" className="lumi-deco lumi-deco--tr" />
       <div className="stack">
+        {/* States the scale in words before the reader meets it as numbers.
+            Not a caption under the chart - it is above it, and it is what the
+            chart is of, which the title alone does not say. "0 to 54" is the
+            sum of nine symptoms rated 0 to 6, and nothing on the old chart
+            said where 54 came from or that it was a fixed ceiling. */}
+        <p className="text-muted">
+          Each night's nine symptom ratings added together, from 0 to{' '}
+          {MAX_SYMPTOM_BURDEN}. Lower is a lighter day.
+        </p>
         <svg
           className="trajectory"
           viewBox={`0 0 ${W} ${H}`}
           role="img"
           aria-label={describeTrajectory(series)}
         >
-          {/* Gridlines at 0, half, and max, so the vertical scale is readable. */}
-          {[0, MAX_SYMPTOM_BURDEN / 2, MAX_SYMPTOM_BURDEN].map((value) => (
+          {/* Gridlines at 0, half, and max, each labelled with the number AND
+              what that number means on the scale. */}
+          {Y_TICKS.map(({ value, label }) => (
             <g key={value}>
               <line
                 x1={PAD.left}
@@ -85,11 +110,31 @@ export function TrajectoryChart() {
                 y2={sy(value)}
                 className="trajectory__grid"
               />
-              <text x={0} y={sy(value) + 3} className="trajectory__axis">
+              <text x={PAD.left - 6} y={sy(value) - 1} textAnchor="end" className="trajectory__axis">
                 {value}
+              </text>
+              <text x={PAD.left - 6} y={sy(value) + 9} textAnchor="end" className="trajectory__axis">
+                {label}
               </text>
             </g>
           ))}
+
+          {/* What the numbers count, said once on each axis. */}
+          <text
+            className="trajectory__axis-title"
+            textAnchor="middle"
+            transform={`rotate(-90) translate(${-(PAD.top + plotH / 2)}, 11)`}
+          >
+            Symptom burden
+          </text>
+          <text
+            x={PAD.left + plotW / 2}
+            y={H - 3}
+            textAnchor="middle"
+            className="trajectory__axis-title"
+          >
+            One dot per night logged
+          </text>
 
           {injuryX !== null && (
             <g>
@@ -123,24 +168,67 @@ export function TrajectoryChart() {
                 key={point.nightOf}
                 cx={sx(point.x)}
                 cy={sy(point.burden)}
-                r={level >= 4 ? 4 : 2.5}
+                r={level >= 4 ? 5 : 3.5}
                 fill={severityToken(point.burden)}
                 className={level >= 4 ? 'trajectory__point trajectory__point--high' : 'trajectory__point'}
               >
                 <title>
-                  {formatShortDate(point.nightOf)}: {point.burden} of {MAX_SYMPTOM_BURDEN}
+                  {formatShortDate(point.nightOf)}: symptom burden {point.burden} out of{' '}
+                  {MAX_SYMPTOM_BURDEN}
                 </title>
               </circle>
             );
           })}
 
-          <text x={PAD.left} y={H - 4} className="trajectory__axis">
+          <text x={PAD.left} y={PAD.top + plotH + 14} className="trajectory__axis">
             {formatShortDate(domain.start)}
           </text>
-          <text x={W - PAD.right} y={H - 4} textAnchor="end" className="trajectory__axis">
+          <text
+            x={W - PAD.right}
+            y={PAD.top + plotH + 14}
+            textAnchor="end"
+            className="trajectory__axis"
+          >
             {formatShortDate(domain.end)}
           </text>
         </svg>
+
+        {/* The key. Every mark on the chart above appears here with a name.
+
+            This is the "two-word chart key" the no-caption-layer rule
+            explicitly allows, and it is the exception that rule was written
+            around: a legend naming what a colour means is not restating what
+            the mark already shows, because an unlabelled colour shows nothing.
+            Before this, the accessible description was better than the visual
+            one - a screen reader got the full sentence and a sighted reader got
+            unexplained circles. */}
+        <ul className="trajectory__legend">
+          <li className="trajectory__key">
+            <span className="trajectory__line-key" aria-hidden="true" />
+            Your nights, in order
+          </li>
+          <li className="trajectory__key">
+            <span className="trajectory__ramp" aria-hidden="true" />
+            Lighter to heavier day
+          </li>
+          <li className="trajectory__key">
+            <span
+              className="trajectory__swatch"
+              aria-hidden="true"
+              style={{
+                background: 'var(--sev-6)',
+                boxShadow: '0 0 0 2px var(--text)',
+              }}
+            />
+            Ringed: your heaviest
+          </li>
+          {injuryX !== null && (
+            <li className="trajectory__key">
+              <span className="trajectory__dash-key" aria-hidden="true" />
+              Injury date
+            </li>
+          )}
+        </ul>
 
         <div>
           <Link to="/history" className="btn btn--secondary">
