@@ -86,8 +86,15 @@ function ContextRecovery({ onLost }) {
 
 export function PainBodyCanvas({ onPickRegion, markedRegions, regionColors, readOnly = false }) {
   const [diagnostics, setDiagnostics] = useState(null);
-  const [contextLost, setContextLost] = useState(false);
   const [hovered, setHovered] = useState(null);
+
+  /* Nothing renders from this. Recovery is handled entirely inside
+     ContextRecovery - preventDefault on the loss so a restore event can arrive,
+     then invalidate to repaint - and by the time a lost context could be shown,
+     it is usually already back. Kept as a setter without a reader because the
+     listeners need somewhere to report to, and named so the next person does
+     not go looking for the UI that consumes it. */
+  const [, setContextLost] = useState(false);
 
   /* A rig whose bones this app does not recognise produces a body that ignores
      every tap, with no error anywhere - the worst way for this to fail. In dev

@@ -20,8 +20,9 @@ than echoing the offending input.
 
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .routers import (
     anomaly,
@@ -86,6 +87,34 @@ app.include_router(symptoms.router)
 app.include_router(validation.router)
 app.include_router(state.router)
 app.include_router(nlp.router)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """The generic 500 this module's docstring promises.
+
+    Without it, an unhandled error reaches Starlette's default handler, which
+    logs a full traceback - and traceback frames hold local variables, which on
+    this service means feature rows. That is the payload in the log, arriving by
+    the one route nobody writes a log line for.
+
+    So: no body echo, no exception text, no stack trace. The client gets the
+    same shape it already knows how to render as "can't reach the service", and
+    the logs get a status code and a path.
+
+    `routers/insights.py` wraps each model in `_section` for a related but
+    different reason - a model that *raises* is already contained there. This
+    catches what that cannot: a model that returns successfully and fails later
+    during response serialisation, which is exactly how a non-finite float used
+    to take the endpoint down.
+    """
+    return JSONResponse(
+        status_code=500,
+        content={
+            "available": False,
+            "reason": "MyLumi's model service hit an unexpected problem. Your data is safe on this device.",
+        },
+    )
 
 
 @app.get("/")

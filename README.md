@@ -117,8 +117,8 @@ daily report, streaks, history and red-flag rules are all computed locally. Only
 the four model-backed cards go quiet, and they say so honestly.
 
 ```bash
-cd frontend && npm test                    # 496 tests
-cd backend && .venv/bin/python -m pytest   # 218 tests
+cd frontend && npm test                    # 608 tests
+cd backend && .venv/bin/python -m pytest   # 223 tests
 ```
 
 The suites include the privacy assertions: that journal text never enters a

@@ -9,9 +9,8 @@ vi.mock('../../components/pain/PainBodySurface.jsx', () => ({
 
 const { PainInsights } = await import('../PainInsights.jsx');
 const { LumiDataProvider, useLumiData } = await import('../../hooks/useLumiData.jsx');
-const { buildDemoData, DEMO_LONG_NIGHTS } = await import('../../lib/demoSeed.js');
+const { DEMO_LONG_NIGHTS } = await import('../../lib/demoSeed.js');
 const { __resetBackendForTests } = await import('../../lib/storage.js');
-const { KEYS } = await import('../../lib/storage.js');
 
 /* Drives the page against the REAL demo generator rather than a fixture.
 

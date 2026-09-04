@@ -30,7 +30,6 @@ export function ModelHonestyCard({ validation }) {
     folds,
     modelError,
     naiveError,
-    skillScore,
     beatsNaive,
     coverage,
     targetCoverage,

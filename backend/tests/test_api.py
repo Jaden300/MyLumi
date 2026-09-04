@@ -242,3 +242,49 @@ def test_nlp_response_carries_no_numeric_clinical_fields():
     serialised = response.text
     for banned in ("symptomBurden", "sleepQuality", "sleepDurationHours", "daysSinceInjury"):
         assert banned not in serialised
+
+
+def test_extreme_but_finite_values_do_not_500():
+    """A regression, found by probing rather than by the suite.
+
+    The schema rejects inf/NaN at the boundary, so raw `Infinity` was already
+    handled. Finite-but-huge passed validation and overflowed *inside* the
+    anomaly model instead, producing a NaN score that FastAPI could not encode -
+    so the service answered a well-formed request with a stack trace.
+
+    Written against the raw body because `json.dumps` will not emit these values
+    from a Python dict, which is what hid the shape during earlier testing.
+    """
+    rows = ",".join(
+        f'{{"nightOf":"2026-04-{i + 1:02d}","symptomBurden":1e308,'
+        f'"nextSymptomBurden":1e308,"sleepDurationMinutes":400,"sleepQuality":3}}'
+        for i in range(14)
+    )
+    response = client.post(
+        "/v1/insights",
+        content='{"rows":[' + rows + '],"daysSinceInjury":14}',
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 200
+    response.json()  # the actual failure was here, not in the status code
+
+
+def test_unhandled_errors_never_echo_the_payload(monkeypatch):
+    """The handler in main.py exists to keep clinical data out of the logs and
+    out of the error body. A 500 must say nothing about what it was given."""
+    from app.routers import insights as insights_router
+
+    def explode(*args, **kwargs):
+        raise RuntimeError("symptomBurden=54 headache=6 secret clinical detail")
+
+    monkeypatch.setattr(insights_router, "to_episodes", explode)
+
+    unraising = TestClient(app, raise_server_exceptions=False)
+    response = unraising.post("/v1/insights", json=payload())
+
+    assert response.status_code == 500
+    body = response.text
+    assert "secret clinical detail" not in body
+    assert "symptomBurden=54" not in body
+    assert "Traceback" not in body
+    assert response.json()["available"] is False

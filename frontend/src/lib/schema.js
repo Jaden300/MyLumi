@@ -189,7 +189,7 @@ export function sanitizePain(raw) {
 
   /* Deliberately unlike sanitizeSymptoms, which writes null for every missing
      key. That is right for a fixed nine-item questionnaire, where "not answered"
-     is meaningful per item. It is wrong for 29 regions: storing 27 nulls a night
+     is meaningful per item. It is wrong for 28 regions: storing 27 nulls a night
      would assert the user said those 27 do not hurt, when what they actually
      said was which ones do. */
   return { answered: true, regions };

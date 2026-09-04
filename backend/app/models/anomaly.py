@@ -53,9 +53,10 @@ def detect(episodes: list[Episode]) -> dict:
     mad = float(np.median(np.abs(values - median)))
     scale = mad * MAD_TO_SIGMA
 
-    if scale < 1e-9:
-        # Every night identical. Nothing is unusual, and saying "no anomalies"
-        # is the correct answer rather than a failure.
+    if not np.isfinite(scale) or scale < 1e-9:
+        # Every night identical (or a spread too extreme to be a real number).
+        # Nothing is unusual, and saying "no anomalies" is the correct answer
+        # rather than a failure.
         return {
             "available": True,
             "reason": None,
@@ -67,6 +68,13 @@ def detect(episodes: list[Episode]) -> dict:
     anomalies = []
     for night, value in zip(nights[-RECENT_WINDOW:], values[-RECENT_WINDOW:]):
         score = (value - median) / scale
+        # A value large enough to overflow the subtraction gives inf, and
+        # inf/inf gives NaN - which serialises to nothing JSON can express, so
+        # it used to leave this function fine and crash the response encoder
+        # instead. Skipping it is also the honest answer: a score we cannot
+        # compute is not evidence that the night was unusual.
+        if not np.isfinite(score):
+            continue
         if abs(score) < THRESHOLD:
             continue
         worse = score > 0

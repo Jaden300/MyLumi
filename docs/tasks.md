@@ -164,7 +164,7 @@ area 0-10 in half steps, review past areas in history.
       -> `face.a/b/c` -> `skinIndex`/`skinWeight` at those vertices -> highest
       weighted bone -> region. Verified against three.js 0.185.1 source before
       committing to it (`SkinnedMesh.js:178`, `Mesh.js:478`).
-- [x] 29 regions, bone map, joint detection from weight blends, front/back from
+- [x] 28 regions, bone map, joint detection from weight blends, front/back from
       the hit normal (`lib/painRegions.js`).
 - [x] `clampHalfStep` + `sanitizePain`, three-state storage model.
 - [x] Aggregates-only wire contract, and the backend fields to receive them.
@@ -309,7 +309,7 @@ timeline playback.
 - [x] **Timeline playback** through the `PainBodySurface` seam, widened with
       `regionColors` and `readOnly` rather than reached around.
 - [x] Charts, region grid, projected-vs-actual table. Hand-rolled SVG.
-- [x] `/pain` route + nav. 56 new tests; suite at 578.
+- [x] `/pain` route + nav. 56 new tests; suite at 578 as of this phase.
 
 **On what "predict how the pain will evolve" became.** The request included how
 long an area's pain would last and a comparison against typical post-concussion
@@ -432,15 +432,71 @@ empty. Fixed by putting more signal in the data - six short nights instead of
 three - never by lowering the statistical bar. Now rho = -0.63 at p = 0.004, and
 a test pins it so it cannot silently regress.
 
+## Phase 7 - Wrap-up sweep
+
+A verification pass over the whole project before submission: the full gate on
+both halves, the plan and this file audited against what is actually built, and
+adversarial probing beyond the committed suites.
+
+- [x] `npm run verify` green end to end - lint, `check:style`, tests, build,
+      `check:bundle`. Backend suite green.
+- [x] The `CLAUDE.md` non-negotiables re-checked against behaviour rather than
+      against comments: the 7-night floor returns no forecast at 1-6 nights, an
+      all-null feature set stays null rather than becoming zeros, `lib/api.js` is
+      still the only `fetch` in the app, and no region name crosses the wire.
+- [x] **A 500 in `models/anomaly.py`**, found by probing rather than by the 825
+      committed tests. Fixed, with the regression pinned three ways.
+- [x] Generic exception handler in `main.py` - the one its own docstring had
+      been describing for some time without it existing.
+- [x] Stale counts corrected: three READMEs quoted 496/177/105 tests, and the
+      pain taxonomy had drifted from 29 regions to 28 while four places still
+      said 29. `PAIN_REGIONS.length` is now pinned by a test.
+
+**The bug, and why the suite missed it.** `POST /v1/insights` with 14+ nights of
+extreme-but-finite burdens returned HTTP 500. `score = (value - median) / scale`
+overflows to `inf` at the top of the float range, `inf / inf` is `NaN`, and the
+guard on that line covered a *zero* scale but not a non-finite score. So the
+model returned successfully with a `NaN` inside it, and the crash happened
+afterwards, in FastAPI's encoder: `Out of range float values are not JSON
+compliant`.
+
+That timing is the interesting part. `routers/insights.py` already wraps every
+model in `_section` precisely so one failure cannot take the batch down - but it
+wraps the *call*, and this model did not raise. The failure was in serialising a
+result the model thought it had returned. No amount of care inside the router
+would have caught it, which is what the new handler in `main.py` is for.
+
+Two things kept it invisible. The schema rejects `inf`/`NaN` at the boundary, so
+the obvious hostile input - literal `Infinity` - was already handled correctly
+and returned 200; only finite-but-huge got through. And `anomaly` is the one
+model whose tests carry no `np.isfinite` assertions, where `test_validation.py`,
+`test_symptoms.py` and `test_state.py` all do. The gap in the tests was exactly
+the gap in the code.
+
+Not reachable from the app itself - the UI caps burden at 0-54, and the frontend
+degrades cleanly on a 500 either way. But it is a public endpoint on Render, and
+a stack trace is the wrong answer to a well-formed request. Worse, the traceback
+went to the default handler, and traceback frames hold local variables: on this
+service, that is feature rows reaching the logs by the one path nobody writes a
+log line for. The handler returns a generic message and no echo.
+
+**The fifth time running it beat reading it.** This file already records four
+occasions where running a model against real data caught something review did
+not. This one is the same lesson from a different angle: the code was correct on
+every input the product can produce, and wrong on an input the endpoint accepts.
+Fixture-shaped tests and a careful read both pass it.
+
 ## Known gaps / deferred
 
 - [ ] Real Lumi art - placeholder SVG in `components/lumi/Lumi.jsx` is one
       self-contained file, swap it when the Claude Design logo exists
 - [ ] Self-host fonts instead of Google Fonts CDN
-- [ ] Component tests (only lib/ is covered so far). This is the real risk in the
-      a11y work above: the radiogroup conversion changed the most-used input in
-      the app and is verified only by a manual keyboard pass. Adding
-      `@testing-library/react` + jsdom is the fix.
+- [ ] Component tests - partly closed. `@testing-library/react` + jsdom are in
+      and ten component suites exist, but **the specific risk named here is
+      still open**: nothing tests `RatingScale` or `SegmentedControl`. The
+      radiogroup conversion changed the most-used input in the app and is still
+      verified only by a manual keyboard pass. Arrow/Home/End navigation, the
+      roving tabindex and `aria-checked` are the assertions to write.
 - [x] Chart library decision - settled: hand-rolled SVG throughout (heat strip,
       trajectory, sentiment sparkline). A library would be the largest dependency
       in the project, and its palette, tooltips and a11y output would all have to

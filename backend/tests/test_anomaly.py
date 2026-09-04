@@ -1,3 +1,7 @@
+import json
+
+import numpy as np
+
 from app.models.anomaly import detect
 from app.models.features import to_episodes
 
@@ -62,3 +66,44 @@ def test_capped_at_three():
     for i in (-2, -3, -4, -5, -6):
         rows[i].symptomBurden = 52.0
     assert len(detect(to_episodes(rows))["anomalies"]) <= 3
+
+
+def test_extreme_values_never_produce_a_non_finite_score():
+    """Every other model's tests assert np.isfinite on their outputs; this one
+    did not, and that is precisely the gap a NaN escaped through.
+
+    At 1e308 the subtraction `value - median` overflows to inf, and inf/inf is
+    NaN. The old code let that reach the response, where FastAPI's encoder
+    raised `Out of range float values are not JSON compliant` - a 500 produced
+    while serialising a result the model thought it had returned successfully.
+    """
+    rows = make_rows(20, noise=0.5)
+    for row in rows:
+        row.symptomBurden = 1e308
+    result = detect(to_episodes(rows))
+    assert result["available"] is True
+    for anomaly in result["anomalies"]:
+        assert np.isfinite(anomaly["score"]), anomaly
+        assert np.isfinite(anomaly["burden"]), anomaly
+
+
+def test_mixed_extreme_signs_stay_finite():
+    """Alternating +/-1e308 is the shape that actually overflowed: a huge
+    spread, so `scale` itself is large but finite, and the guard on `scale`
+    alone does not catch it."""
+    rows = make_rows(20, noise=0.5)
+    for i, row in enumerate(rows):
+        row.symptomBurden = 1e308 if i % 2 else -1e308
+    result = detect(to_episodes(rows))
+    for anomaly in result["anomalies"]:
+        assert np.isfinite(anomaly["score"]), anomaly
+
+
+def test_json_serialisable():
+    """The end the bug actually surfaced at. `json.dumps` rejects NaN and inf
+    with the default `allow_nan=False` that Starlette uses, so this is the same
+    check the response encoder performs."""
+    rows = make_rows(20, noise=0.5)
+    for row in rows:
+        row.symptomBurden = 1e308
+    json.dumps(detect(to_episodes(rows)), allow_nan=False)

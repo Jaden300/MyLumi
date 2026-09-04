@@ -76,6 +76,16 @@ describe('region vocabulary', () => {
     expect(Object.keys(PAIN_REGION_BY_ID)).toHaveLength(PAIN_REGIONS.length);
   });
 
+  /* Pinned because the count is quoted in prose - the About page copy, the
+     docs, and several source comments all state a number. It had already
+     drifted once: the taxonomy went to 28 while four places still said 29.
+     A number repeated in prose needs one assertion holding it, or the prose
+     silently becomes wrong. Changing the taxonomy should fail here and send
+     you to update the copy with it. */
+  it('has exactly 28 regions, the number the copy and docs quote', () => {
+    expect(PAIN_REGIONS).toHaveLength(28);
+  });
+
   it('formats a known id and falls back visibly on an unknown one', () => {
     expect(formatRegionLabel('thigh_r')).toBe('Right thigh');
     expect(formatRegionLabel('nonsense')).toBe('nonsense');

@@ -21,7 +21,7 @@ Interactive API docs: http://localhost:8000/docs
 ## Test
 
 ```bash
-.venv/bin/python -m pytest        # 177 tests
+.venv/bin/python -m pytest        # 223 tests
 ```
 
 Tests are statistically seeded - no flaky assertions. `tests/fixtures.py` plants

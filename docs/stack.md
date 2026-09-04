@@ -36,7 +36,7 @@ backend/
     schemas.py   wire contract - mirrors toFeatureRow
     routers/     thin HTTP layer
     models/      the ML - pure, no FastAPI imports, unit-testable
-  tests/         pytest - 105 tests
+  tests/         pytest - 223 tests
 ```
 
 Run: `cd backend && .venv/bin/uvicorn app.main:app --reload --port 8000`
