@@ -9,7 +9,7 @@
 <p align="center">
   <a href="#running-it"><img alt="React 19" src="https://img.shields.io/badge/React-19-4C1D95?style=flat-square&logo=react&logoColor=white"></a>
   <a href="#running-it"><img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-stateless-D6249F?style=flat-square&logo=fastapi&logoColor=white"></a>
-  <img alt="Tests" src="https://img.shields.io/badge/tests-831%20passing-4ADE80?style=flat-square">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-844%20passing-4ADE80?style=flat-square">
   <img alt="Local first" src="https://img.shields.io/badge/data-local%20first-4C1D95?style=flat-square">
 </p>
 
@@ -45,8 +45,8 @@ That runs the whole way down:
   neck was fine" from "I did not mark my neck", so it is absent from that
   region's series rather than counted as recovery.
 - Charts **break their line across unlogged nights** instead of interpolating.
-- Correlations are Holm-Bonferroni corrected. Uncorrected, roughly **half** of
-  pure-noise datasets produced a "finding" in testing.
+- Correlations are Holm-Bonferroni corrected. Uncorrected, **30%** of pure-noise
+  datasets produced a "finding" in testing; corrected, 6%.
 - **The forecast grades itself** against "tomorrow will be like today", reported
   whichever way it goes. That is how the interval got fixed: it advertised 80%
   coverage and delivered 51%.
@@ -101,7 +101,7 @@ pain page and the red-flag rules are all local. Only the model-backed cards go
 quiet, and they say so.
 
 ```bash
-cd frontend && npm test                    # 608 tests
+cd frontend && npm test                    # 621 tests
 cd backend && .venv/bin/python -m pytest   # 223 tests
 ```
 
@@ -116,9 +116,10 @@ correlation engine has to discover it the same way it would on real data.
 
 ## Deployment
 
-`render.yaml` at the repo root defines both services and **is not yet applied**;
-that needs an account action. Set `VITE_API_URL` on the web service (Vite inlines
-it at build time, so it needs a redeploy), then `FRONTEND_ORIGINS` on the API,
+`render.yaml` at the repo root defines both services and is applied: the
+stateless API and the static frontend come up from one blueprint. Set
+`VITE_API_URL` on the web service (Vite inlines it at build time, so it needs a
+redeploy), then `FRONTEND_ORIGINS` on the API,
 which refuses to boot without it rather than coming up with a localhost-only CORS
 allowlist. `docs/stack.md` has the ordering and the reasoning.
 

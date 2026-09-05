@@ -413,11 +413,11 @@ that would read as certainty.
 "because of". A backend test asserts the causal vocabulary (`causes`, `due to`,
 `makes your`) never appears in generated text.
 
-**Refuse to over-report.** Testing four candidate features at p<0.05 produced a
-finding on roughly **half** of pure-noise datasets in testing. Holm-Bonferroni
-correction cuts that to about 20% while still catching 100% of genuine planted
-effects. A patient told "your stress predicts your symptoms" on the strength of
-noise is a real harm, not a cosmetic one.
+**Refuse to over-report.** Testing the seven candidate features at p<0.05 produced
+a finding on **30%** of pure-noise datasets in testing. Holm-Bonferroni correction
+cuts that to 6% while still catching the genuine planted effect. A patient told
+"your stress predicts your symptoms" on the strength of noise is a real harm, not
+a cosmetic one. `notebooks/mylumi-ml.ipynb` section 2 reproduces both figures.
 
 **Refuse to alarm.** An unusual day is surfaced as "worth noting", never as a
 setback or a relapse. A statistical outlier in nine self-reported numbers is not
