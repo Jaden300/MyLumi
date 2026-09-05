@@ -1155,6 +1155,219 @@
   vector-effect: non-scaling-stroke;
 }
 
+/* --- about page infographics ------------------------------------------------ */
+
+/* Published figures on the About page. Related to .stat but deliberately its own
+   thing: .stat shows the user a reading from their own entries, and these are
+   numbers from studies about a population. Same shape would imply same standing.
+
+   auto-fit rather than a fixed column count, because the figures are of very
+   different lengths ("0" next to "214,110") and a fixed grid leaves one column
+   nearly empty at most widths. */
+.stat-figure-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5) var(--space-6);
+  margin-top: var(--space-5);
+}
+
+@media (min-width: 560px) {
+  .stat-figure-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+}
+
+.stat-figure {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--highlight-line);
+}
+
+.stat-figure__value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--highlight-head);
+  display: block;
+}
+
+.stat-figure__value--lg { font-size: 2.1rem; }
+.stat-figure__value--md { font-size: 1.5rem; }
+
+/* Body size, not --fs-sm. What the number counts is the part that carries the
+   meaning; shrinking it below the figure would leave a big number saying
+   nothing. */
+.stat-figure__label {
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* The one thing that belongs at --fs-xs here. It has to be legible enough to
+   check and quiet enough not to compete with the figure. */
+.stat-figure__source {
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.stat-figure-grid__note {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+/* --- the population curve --------------------------------------------------- */
+
+.problem-curve {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.problem-curve__chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* The average course. Solid and in the accent, because it is the line people
+   already believe in. */
+.problem-curve__typical {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The course that does not resolve. Dashed as well as differently coloured, so
+   the two lines stay distinguishable without relying on hue - which matters for
+   colour vision deficiency and again for anyone reading this at minimum
+   brightness. */
+.problem-curve__persisting {
+  fill: none;
+  stroke: var(--sev-4);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.problem-curve__peak {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.problem-curve__key {
+  width: 22px;
+  height: 0;
+  flex: none;
+}
+
+.problem-curve__key--typical { border-top: 2px solid var(--accent); }
+.problem-curve__key--persisting { border-top: 2px dashed var(--sev-4); }
+
+/* --- the pipeline ----------------------------------------------------------- */
+
+/* Four steps as an ordered list, not four boxes with arrows between them. The
+   order is the meaning, and <ol> says so to a screen reader without needing the
+   arrows described. A connecting rule runs down the numbers instead. */
+.pipeline {
+  list-style: none;
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.pipeline__step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  position: relative;
+}
+
+/* The rule joining one step to the next. Drawn from the number down, and not on
+   the last step. Purely decorative, so it is a pseudo-element rather than
+   markup a reader would have to skip. */
+.pipeline__step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 17px;
+  top: 36px;
+  bottom: calc(var(--space-4) * -1);
+  width: 1px;
+  background: var(--border);
+}
+
+.pipeline__n {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  position: relative;
+  z-index: 1;
+}
+
+.pipeline__head {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* --- the refusal figures ---------------------------------------------------- */
+
+.refusal {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.refusal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5) var(--space-6);
+  margin-top: var(--space-4);
+}
+
+@media (min-width: 720px) {
+  .refusal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.refusal__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.refusal__value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--accent);
+}
+
+/* Body size again. These sentences are the substance of the claim, not a
+   footnote to the number above them. */
+.refusal__label {
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+
 .trajectory__point {
   stroke: var(--surface);
   stroke-width: 1;

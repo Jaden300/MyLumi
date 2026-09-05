@@ -1,0 +1,16 @@
+# Notebook-only dependencies, kept out of backend/requirements.txt on purpose.
+#
+# Render installs backend/requirements.txt to build the API. Jupyter pulls in
+# around a hundred packages, none of which the service imports, and every one of
+# them would be a slower cold start and more surface area on a free-tier
+# instance that already sleeps. So the notebook's tooling lives here.
+#
+# The notebook imports the real models from backend/app/models, so it needs the
+# same numpy and scipy the service pins. Those are NOT repeated here: install
+# this alongside backend/requirements.txt, into the same environment, so there
+# is one pinned version of each rather than two that can drift.
+#
+#   backend/.venv/bin/pip install -r backend/requirements.txt -r notebooks/requirements.txt
+#   backend/.venv/bin/jupyter lab notebooks/mylumi-ml.ipynb
+jupyter==1.1.1
+matplotlib==3.10.9

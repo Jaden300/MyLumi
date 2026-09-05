@@ -26,3 +26,11 @@ MyLumi_Plan.md
 # Agent scratch plans, wherever a tool decides to put them.
 .claude/plans/
 *.plan.md
+
+# The demo video script. Same reasoning as MyLumi_Plan.md above: it is a working
+# document for the team, not part of the software.
+VIDEO_SCRIPT.md
+
+# Jupyter's autosaves. The notebook itself IS committed, with its outputs, so a
+# reader can see the charts without installing anything or running a kernel.
+notebooks/.ipynb_checkpoints/

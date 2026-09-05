@@ -1,6 +1,8 @@
 import { Card } from '../components/ui/Card.jsx';
 import { Lumi } from '../components/lumi/Lumi.jsx';
 import { SubjectCard } from '../components/about/SubjectCard.jsx';
+import { ProblemInfographic } from '../components/about/ProblemInfographic.jsx';
+import { SolutionInfographic } from '../components/about/SolutionInfographic.jsx';
 
 /* Limitations are stated plainly and in the product, not buried in a README.
    See MyLumi_Plan.md section 4.
@@ -23,6 +25,13 @@ export function About() {
           between the two.
         </p>
       </header>
+
+      {/* The problem, in published figures, before anything this app claims
+          about itself. Each one carries its source on screen: this page goes on
+          to promise that MyLumi will not state a number it cannot support, and
+          an unsourced statistic three paragraphs above that would spend the
+          credibility the rest of the page is trying to earn. */}
+      <ProblemInfographic />
 
       {/* What the app is about, before what it cannot do. The honesty cards
           below then read as this page qualifying its own claims, which is the
@@ -63,6 +72,12 @@ export function About() {
           </div>
         </Card>
       </div>
+
+      {/* How the problem above is answered, immediately before the limits of
+          that answer. The order is the argument: a claim, then its own
+          qualification, rather than the qualification tucked somewhere the
+          reader has to go looking for it. */}
+      <SolutionInfographic />
 
       <Card variant={['feature', 'accent']}>
         <Lumi size={240} state="reading" className="lumi-deco lumi-deco--tr" />
